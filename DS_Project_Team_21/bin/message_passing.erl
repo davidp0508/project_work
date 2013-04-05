@@ -55,7 +55,7 @@ recvMsg() ->
 		case Payload of %here we can add a bunch of cases for tokens, etc...
 			{_, _, ack, _} -> io:format("Got an ack; done sending.~n", []),
 				   recvMsg();
-			_ -> unicastSend({echo_server, 'echo_server@192.168.1.48', {node(), echo_server, ack, 1}}),
+			_ -> unicastSend({receiver_server, 'receiver_server@192.168.1.48', {node(), receiver_server, ack, 1}}),
 				 %above line should have the eserver@IP be auto-generated based on IP of recvd message's sender
 				 unicastSend({local_server, FromName, {self(), local_server, ack, 1}}), %need this line (right now) to make it respond and stop waiting 
 				 %Logic will need to be added to make the payload dynamic instead of hard-coded

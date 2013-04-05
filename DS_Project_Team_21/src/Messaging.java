@@ -6,7 +6,7 @@ import  com.ericsson.otp.erlang.*;
 public class Messaging {
 
 	private static OtpSelf client;
-	private static OtpPeer server;
+	private static OtpPeer mySendserver;
 	private static OtpConnection connection;
 
 
@@ -98,7 +98,7 @@ public class Messaging {
         
 		try {
 			//System.out.println("Tuple as string before: "+withArgs(tuple).toString()+"\n");
-			connection.sendRPC("message_passing", "unicastSend", withArgs(tuple));
+			connection.sendRPC("message_passing", "unicastSend", formatArgs(tuple));
 			//System.out.println("Testing multicast...\n");
 			//connection.sendRPC("message_passing", "multicastSend", withArgs(mcTuple));
 		} catch (IOException e1) {
@@ -123,7 +123,7 @@ public class Messaging {
 	}
 
 
-	private static OtpErlangObject[] withArgs(OtpErlangTuple tup) {
+	private static OtpErlangObject[] formatArgs(OtpErlangTuple tup) {
 		System.out.println("Tuple to send: "+tup.toString()+"\n");
 		return new OtpErlangObject[] { 
 				tup 
@@ -131,28 +131,22 @@ public class Messaging {
 	}
 	
 	
-	public static void main(String[] args)
+	public static void initServers(String myIP, String sender_server)
 	{
-		IPAddress ip = new IPAddress();
-		String myIP = ip.getIPaddress();
-		String yourIP = myIP; //should be whatever the other user's IP is, ultimately
-		String local_server = "local_server@";
-		String me = "david@";
+		/* Sets up local server services on each node.
+		 * The sender_server takes Java to Erlang sendRPC calls
+		 * and integrates with the Erlang lower layer to perform
+		 * message passing. The receiver_server receives all messages
+		 * from other nodes and allows for Java-level processing.
+		 */
 		
-		EchoServer myServer = new EchoServer(); //start the Java echo server for receiving messages
-		Thread threadServer = new Thread(myServer);
+		ReceiverServer myReceiver = new ReceiverServer(); //start the Java echo server for receiving messages
+		Thread threadServer = new Thread(myReceiver);
 		threadServer.start(); //may have a race condition between this and the sendMsg function
 		
+		mySendserver = new OtpPeer(sender_server.concat(myIP)); //must create a local_server instance on each node to handle sending 
 		try {
-			client = new OtpSelf("client", "test"); //this should later be the username of the local player
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		server = new OtpPeer(local_server.concat(myIP)); //must create a local_server instance on each node to handle sending 
-		OtpErlangAtom type = new OtpErlangAtom("test"); //just for proof of concept; will need to be defined based on which logic is being used
-		try {
-			connection = client.connect(server);
+			connection = client.connect(mySendserver);
 		} catch (UnknownHostException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -163,8 +157,30 @@ public class Messaging {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		OtpPeer dst = new OtpPeer(me.concat(yourIP));
+	}
+	
+	
+	public static void main(String[] args)
+	{
+		IPAddress ip = new IPAddress();
+		String myIP = ip.getIPaddress();
+		String yourIP = myIP; //should be whatever the other user's IP is, ultimately
+		String sender_server = "sender_server@";
+		String me = "david"; //will come from the user starting up the application, ultimately
+		String tmp_dst = "shifa@"; //should come from node logic that knows other players
 		
+		/* Build a node for the local player */
+		try {
+			client = new OtpSelf(me, "test"); //this should be the username of the local player
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		initServers(myIP, sender_server);
+		
+		OtpPeer dst = new OtpPeer(tmp_dst.concat(yourIP));
+		OtpErlangAtom type = new OtpErlangAtom("test"); //just for proof of concept; will need to be defined based on which logic is being used
 		sendMsg(client, type, dst, myIP, yourIP); //send a message
 	}
 }
