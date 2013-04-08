@@ -165,8 +165,8 @@ public class Messaging {
 		IPAddress ip = new IPAddress();
 		String myIP = ip.getIPaddress();
 		String yourIP = "192.168.1.51"; //myIP; //should be whatever the other user's IP is, ultimately
-		String sender_server = "sender_server@";
 		String me = "david"; //will come from the user starting up the application, ultimately
+		String sender_server = "sender_server@";
 		String tmp_dst = "shifa@"; //should come from node logic that knows other players
 		
 		/* Build a node for the local player */
