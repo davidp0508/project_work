@@ -7,7 +7,7 @@ public class ReceiverServer implements Runnable {
 	public void run() {
 		IPAddress ip = new IPAddress();
 		String myIP = ip.getIPaddress();
-		String receiver_server = "receiver_server@"; 
+		String receiver_server = "david@"; //"receiver_server@"; 
 		OtpNode node = null;
 		
 		try {
@@ -16,7 +16,8 @@ public class ReceiverServer implements Runnable {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-        OtpMbox mbox = node.createMbox("receiver_server"); //just to make it easier to follow the same format
+		//the mbox and the OtpNode above should be the same as the client created in Messaging.java, I think...?
+        OtpMbox mbox = node.createMbox("david");//"receiver_server"); //just to make it easier to follow the same format
         OtpErlangAtom SHUTDOWN = new OtpErlangAtom("shutdown");
         System.out.println("Receiver server ("+node.toString()+") started\n");
         

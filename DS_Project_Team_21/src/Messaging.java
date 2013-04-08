@@ -75,7 +75,7 @@ public class Messaging {
         userList[0][1] = myIP;//"192.168.1.48";
         userList[1][0] = "shifa";
         userList[1][1] = yourIP;//"192.168.1.48";
-        userList[2][0] = "local_server";
+        userList[2][0] = "sender_server";
         userList[2][1] = myIP;//"192.168.1.48";
         //Erlang's list of tuples looks like this: [{david, '192.168.1.44'}, {joe, '192.168.1.44'}, {local_server, '192.168.1.44'}]
       
@@ -164,7 +164,7 @@ public class Messaging {
 	{
 		IPAddress ip = new IPAddress();
 		String myIP = ip.getIPaddress();
-		String yourIP = myIP; //should be whatever the other user's IP is, ultimately
+		String yourIP = "192.168.1.51"; //myIP; //should be whatever the other user's IP is, ultimately
 		String sender_server = "sender_server@";
 		String me = "david"; //will come from the user starting up the application, ultimately
 		String tmp_dst = "shifa@"; //should come from node logic that knows other players
