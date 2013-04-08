@@ -139,12 +139,48 @@ public class Messaging {
 		 * message passing. The receiver_server receives all messages
 		 * from other nodes and allows for Java-level processing.
 		 */
-		
+
 		ReceiverServer myReceiver = new ReceiverServer(); //start the Java echo server for receiving messages
 		Thread threadServer = new Thread(myReceiver);
 		threadServer.start(); //may have a race condition between this and the sendMsg function
 		
-		mySendserver = new OtpPeer(sender_server.concat(myIP)); //must create a local_server instance on each node to handle sending 
+		Runtime rt = Runtime.getRuntime();
+		String erlName = "erl"; //may be platform independent?
+		String options = " +K true +P 500000 -name '"; //must be there
+		String server = sender_server.concat(myIP);
+		String cookiePrefix = "' -setcookie ";
+		String cookie = "test"; //may change based on what we plan to do (needs to be changed elsewhere in this Project if so)
+		String module = "message_passing"; //name of Erlang module
+		String function = ":start("; //name of function to call
+		String closing = ").";
+		
+		try {
+			System.out.println("Trying to execute command "+erlName+options+server+cookiePrefix+cookie+"\n");
+			Process pr = rt.exec("whoami");
+			System.out.println("Output of command is "+pr.getInputStream().read()+"\n");
+			//Process pr = rt.exec(erlName+options+server+cookiePrefix+cookie);//should look similar to "erl +K true +P 500000 -name 'sender_server@192.168.1.56' -setcookie test"
+			//rt.exec(module+function+sender_server+closing); //should look similar to "message_passing:start(sender_server)."
+			//Process pr = rt.exec("erl +K true +P 500000 -name 'sender_server@192.168.1.56' -setcookie test");
+		} catch (IOException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+		
+//		OtpErlangObject[] ss = new OtpErlangObject[1];
+//		ss[0] = new OtpErlangAtom("sender_server");
+//		//OtpErlangTuple tuple = new OtpErlangTuple(ss);
+//		
+//		try {
+//			System.out.println("Tuple as string before: "+ss[0]+"\n");
+//			connection.sendRPC("message_passing", "start", ss);//formatArgs(tuple));
+//			//System.out.println("Testing multicast...\n");
+//			//connection.sendRPC("message_passing", "multicastSend", withArgs(mcTuple));
+//		} catch (IOException e1) {
+//			// TODO Auto-generated catch block
+//			e1.printStackTrace();
+//		}
+		
+		mySendserver = new OtpPeer(sender_server.concat(myIP)); //must create a sender_server instance on each node to handle sending 
 		try {
 			connection = client.connect(mySendserver);
 		} catch (UnknownHostException e) {
@@ -164,7 +200,7 @@ public class Messaging {
 	{
 		IPAddress ip = new IPAddress();
 		String myIP = ip.getIPaddress();
-		String yourIP = "192.168.1.51"; //myIP; //should be whatever the other user's IP is, ultimately
+		String yourIP = myIP; //should be whatever the other user's IP is, ultimately
 		String me = "david"; //will come from the user starting up the application, ultimately
 		String sender_server = "sender_server@";
 		String tmp_dst = "shifa@"; //should come from node logic that knows other players

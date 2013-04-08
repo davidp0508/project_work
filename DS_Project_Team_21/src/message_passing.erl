@@ -70,6 +70,7 @@ recvMsg(NodeList) ->
 
 
 start(Name) ->
+	io:format("received name ~p~n", [Name]),
 	NodeList = [Name], %add self to global node list to monitor who is alive (work in progress)
 	case register(Name, spawn(message_passing, recvMsg, [NodeList])) of
 		true -> %yes -> 
