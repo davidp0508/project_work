@@ -41,7 +41,7 @@ multicastSend({Name, Node, Payload, Users}) ->
 
 recvMsg(CurNodeList) ->
 	%Will need to be modified based on what we need to do at Erlang's level. 
-	io:format("In recvMsg(), node list is ~p~n", [CurNodeList]),
+	%io:format("In recvMsg(), node list is ~p~n", [CurNodeList]),
 	receive
 		{Payload, FromName} ->        
 		io:format("Got message ~p from ~p!~n", [Payload, FromName]),
@@ -60,6 +60,8 @@ recvMsg(CurNodeList) ->
 				 io:format("NodeList after call is ~p~n", [NodeList]),
 				 %Logic will need to be added to make the payload dynamic instead of hard-coded
 				 recvMsg(NodeList);
+			nodedown -> %one of the nodes we're monitoring went down
+				io:format("Node ~p has failed ~n", [FromName]); %we may want to interface upwards with our Java receiver here, or handle stuff at this level
 			_ -> io:format("Message does not match an expected format~n", []) %shouldn't happen unless the message is malformed
 		end
 	end,
@@ -79,9 +81,8 @@ updateNodes(CurNodeList, Candidate) ->
 	case lists:member(Candidate, CurNodeList) of
 	        false ->
 	            io:format("Could not find ~p in list ~p~n", [Candidate, CurNodeList]),
-				lists:append(CurNodeList, [Candidate]);%,
-				%io:format("New list is ~p~n", [NodeList]);
-				%monitor();
+				erlang:monitor_node(Candidate, true),
+				lists:append(CurNodeList, [Candidate]);
 	        true ->
 				io:format("Found ~p in list ~p~n", [Candidate, CurNodeList]),
 				NodeList = CurNodeList
