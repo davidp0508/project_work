@@ -7,7 +7,7 @@
 %%To Do -- Receiver code, additional uni/multi capabilities, how to integrate Han's code.
 
 -module(message_passing).
--export([unicastSend/1, multicastSend/1, recvMsg/1, start/1]).
+-export([unicastSend/1, multicastSend/1, recvMsg/1, start/1, updateNodes/2, getSenderFullName/2]).%getMyIP/1]).
 
 
 unicastSend({Name, Node, Payload}) ->
@@ -20,12 +20,6 @@ unicastSend({Name, Node, Payload}) ->
 	%end,
 	%Return.
 	%recvMsg() can't go here, b/c it doesn't return to RPC
-
-
-%startMC({Name, Node, Payload}) -> no longer needed; can pass the names in as a list of tuples inside the main tuple.
-	%Users = [{david, '192.168.1.44'}, {joe, '192.168.1.44'}, {local_server, '192.168.1.44'}],
-	%multicastSend({Name, Node, Payload, Users}).
-	%multicastSend({Name, Node, Payload}, Users).
 
 
 multicastSend({Name, Node, Payload, Users}) ->
@@ -51,30 +45,65 @@ recvMsg(NodeList) ->
 	receive
 		{Payload, FromName} ->        
 		io:format("Got message ~p from ~p!~n", [Payload, FromName]),
-		io:format("Node list is ~p~n", [NodeList]),	%here we should check to see if we have a monitor connection to this node, and make one if not...if sender_server, check for the src@serverIP in the list (create as separate function)
+		%io:format("Node list is ~p~n", [NodeList]),	%here we should check to see if we have a monitor connection to this node, and make one if not...if sender_server, check for the src@serverIP in the list (create as separate function)
 		case Payload of %here we can add a bunch of cases for tokens, etc...
-			{_, _, ack, _} -> io:format("Got an ack; done sending.~n", []),
+			{Sender, _, ack, _} -> io:format("Got an ack; done sending.~n", []),
+				   %SenderFN = getSenderFullName(FromName, Sender), %need this, but it fails now b/c Sender is a PID and not a name...must fix!
+				   updateNodes(NodeList, Sender),
 				   recvMsg(NodeList);
-			{Sender, _, _, _} -> [_|IP] = re:split(atom_to_list(FromName), "@", [{return, list}]), %extract the IP of the sender
-%% 								io:format("Sender ~p from IP ~p~n", [Sender,list_to_atom(IP)]),
-								 [IP_raw|_] = IP, %have to do this to make it a list, even though it looks like a list now...
-				 unicastSend({Sender, list_to_atom(lists:concat([Sender, '@', list_to_atom(IP_raw)])), {node(), Sender, ack, 1}}),
-				 unicastSend({sender_server, FromName, {self(), sender_server, ack, 1}}), %need this line (right now) to make it respond and stop waiting 
+			{Sender, Me, _, _} ->
+				 SenderFN = getSenderFullName(FromName, Sender),
+				 unicastSend({Sender, SenderFN, {Me, Sender, ack, 1}}),
+				 unicastSend({sender_server, FromName, {Me, sender_server, ack, 1}}), %need this line (right now) to make it respond and stop waiting 
+				 updateNodes(NodeList, Sender),
 				 %Logic will need to be added to make the payload dynamic instead of hard-coded
 				 recvMsg(NodeList);
 			_ -> io:format("Message does not match an expected format~n", []) %shouldn't happen unless the message is malformed
-		end;
-		Message -> io:format("Hello World!~n", []) %dummy clause
+		end
 	end,
 	otherthing.
 
 
+updateNodes(NodeList, Candidate) ->
+	%This function is used to keep track of which nodes are monitored.
+	%Any node passed in that is not on the node list must be monitored 
+	%and then added to the node list. Nodes already on the list should 
+	%not be added again. Nodes that have died (which we'll know because
+	%a 'DOWN' message will be sent to the user node) should be demonitored
+	%and then removed. A timeout/heartbeat style of choosing when to remove
+	%the node may be implemented if necessary.
+	
+	case lists:member(Candidate, NodeList) of
+	        false ->
+	            io:format("Could not find ~p in list ~p~n", [Candidate, NodeList]),
+				lists:append(NodeList, atom_to_list(Candidate));
+	        true ->
+				io:format("Found ~p in list ~p~n", [Candidate, NodeList])
+	end.
+
+
+getSenderFullName(FromName, Sender) ->
+	[_|IP] = re:split(atom_to_list(FromName), "@", [{return, list}]), %extract the IP of the sender
+    [IP_raw|_] = IP, %have to do this to make it a list, even though it looks like a list now...
+	list_to_atom(lists:concat([Sender, '@', list_to_atom(IP_raw)])). %sender's full name, including IP	
+
+
 start(Name) ->
+	%IP = getMyIP(inet:getiflist()),
 	io:format("received name ~p~n", [Name]),
-	NodeList = [Name], %add self to global node list to monitor who is alive (work in progress)
+	NodeList = [Name], %add self to global node list to monitor who is alive (work in progress; shouldn't include sender_server)
 	case register(Name, spawn(message_passing, recvMsg, [NodeList])) of
 		true -> %yes -> 
 			io:format("Successful add~n");
 		false -> %no -> 
 			io:format("Unable to add ~p~n", [Name])
 	end.
+
+
+%getMyIP(Interfaces) ->
+%	io:format("INterface list: ~p~n", [Interfaces]),
+%	case Interfaces of
+%		{ok,[List]} -> io:format("List of interfaces are ~p~n", List);
+%		_ -> io:format("Could not find any interfaces~n", []),
+%			IP = ""
+%	end.  

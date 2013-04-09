@@ -2,6 +2,8 @@ import java.io.IOException;
 import java.net.UnknownHostException;
 //import java.util.concurrent.locks.Lock;
 import  com.ericsson.otp.erlang.*;
+import org.apache.commons.exec.*;
+import org.apache.commons.exec.Executor;
 
 public class Messaging {
 
@@ -75,7 +77,7 @@ public class Messaging {
         userList[0][1] = myIP;//"192.168.1.48";
         userList[1][0] = "shifa";
         userList[1][1] = yourIP;//"192.168.1.48";
-        userList[2][0] = "sender_server";
+        userList[2][0] = "dan";
         userList[2][1] = myIP;//"192.168.1.48";
         //Erlang's list of tuples looks like this: [{david, '192.168.1.44'}, {joe, '192.168.1.44'}, {local_server, '192.168.1.44'}]
       
@@ -100,7 +102,7 @@ public class Messaging {
 			//System.out.println("Tuple as string before: "+withArgs(tuple).toString()+"\n");
 			connection.sendRPC("message_passing", "unicastSend", formatArgs(tuple));
 			//System.out.println("Testing multicast...\n");
-			//connection.sendRPC("message_passing", "multicastSend", withArgs(mcTuple));
+			//connection.sendRPC("message_passing", "multicastSend", formatArgs(mcTuple));
 		} catch (IOException e1) {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();
@@ -144,40 +146,31 @@ public class Messaging {
 		Thread threadServer = new Thread(myReceiver);
 		threadServer.start(); //may have a race condition between this and the sendMsg function
 		
-		Runtime rt = Runtime.getRuntime();
-		String erlName = "erl"; //may be platform independent?
-		String options = " +K true +P 500000 -name '"; //must be there
-		String server = sender_server.concat(myIP);
-		String cookiePrefix = "' -setcookie ";
-		String cookie = "test"; //may change based on what we plan to do (needs to be changed elsewhere in this Project if so)
-		String module = "message_passing"; //name of Erlang module
-		String function = ":start("; //name of function to call
-		String closing = ").";
-		
-		try {
-			System.out.println("Trying to execute command "+erlName+options+server+cookiePrefix+cookie+"\n");
-			Process pr = rt.exec("whoami");
-			System.out.println("Output of command is "+pr.getInputStream().read()+"\n");
-			//Process pr = rt.exec(erlName+options+server+cookiePrefix+cookie);//should look similar to "erl +K true +P 500000 -name 'sender_server@192.168.1.56' -setcookie test"
-			//rt.exec(module+function+sender_server+closing); //should look similar to "message_passing:start(sender_server)."
-			//Process pr = rt.exec("erl +K true +P 500000 -name 'sender_server@192.168.1.56' -setcookie test");
-		} catch (IOException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		}
-		
-//		OtpErlangObject[] ss = new OtpErlangObject[1];
-//		ss[0] = new OtpErlangAtom("sender_server");
-//		//OtpErlangTuple tuple = new OtpErlangTuple(ss);
+		/* The code commented out below is an attempt at trying to get the sender_server to run from Java. It
+		 * currently doesn't work because of some issues with putting the command line together. I will try to 
+		 * figure it out at some point, but right now there are more pressing issues. */
+//		String erlName = "erl"; //may be platform independent?
+//		String options = " +K true +P 500000 -name '"; //must be there
+//		String server = sender_server.concat(myIP);
+//		String cookiePrefix = "' -setcookie ";
+//		String cookie = "test"; //may change based on what we plan to do (needs to be changed elsewhere in this Project if so)
+//		String module = "message_passing"; //name of Erlang module
+//		String function = ":start("; //name of function to call
+//		String closing = ").";
 //		
+//		final long timeout = 10000000;
+//		final ProcessExecutorHandler procHdlr = null;
+//		ProcessExecutor proc = null;
+//		final CommandLine cmd = new CommandLine(erlName);
+//		cmd.addArgument(options);
+//		cmd.addArgument(server);
+//		cmd.addArgument(cookiePrefix);
+//		cmd.addArgument(cookie);
 //		try {
-//			System.out.println("Tuple as string before: "+ss[0]+"\n");
-//			connection.sendRPC("message_passing", "start", ss);//formatArgs(tuple));
-//			//System.out.println("Testing multicast...\n");
-//			//connection.sendRPC("message_passing", "multicastSend", withArgs(mcTuple));
-//		} catch (IOException e1) {
+//			proc.runProcess(cmd, procHdlr, timeout);
+//		} catch (IOException e2) {
 //			// TODO Auto-generated catch block
-//			e1.printStackTrace();
+//			e2.printStackTrace();
 //		}
 		
 		mySendserver = new OtpPeer(sender_server.concat(myIP)); //must create a sender_server instance on each node to handle sending 
