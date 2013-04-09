@@ -3,7 +3,6 @@ import java.net.UnknownHostException;
 //import java.util.concurrent.locks.Lock;
 import  com.ericsson.otp.erlang.*;
 import org.apache.commons.exec.*;
-import org.apache.commons.exec.Executor;
 
 public class Messaging {
 
@@ -193,10 +192,13 @@ public class Messaging {
 	{
 		IPAddress ip = new IPAddress();
 		String myIP = ip.getIPaddress();
-		String yourIP = myIP; //should be whatever the other user's IP is, ultimately
+		String yourIP = "192.168.1.59";//myIP; //should be whatever the other user's IP is, ultimately
 		String me = "david"; //will come from the user starting up the application, ultimately
 		String sender_server = "sender_server@";
-		String tmp_dst = "shifa@"; //should come from node logic that knows other players
+		//String tmp_dst = "shifa@"; //should come from node logic that knows other players
+		String[] tmp_dst = new String[2]; //just temporary for testing
+		tmp_dst[0] = "shifa@";
+		tmp_dst[1] = "joe@";
 		
 		/* Build a node for the local player */
 		try {
@@ -208,8 +210,21 @@ public class Messaging {
 		
 		initServers(myIP, sender_server);
 		
-		OtpPeer dst = new OtpPeer(tmp_dst.concat(yourIP));
+		//OtpPeer dst = new OtpPeer(tmp_dst.concat(yourIP)); //commented out for testing purposes ONLY
+		OtpPeer dst = null; 
 		OtpErlangAtom type = new OtpErlangAtom("test"); //just for proof of concept; will need to be defined based on which logic is being used
-		sendMsg(client, type, dst, myIP, yourIP); //send a message
+		for(int i=0; i<2; i++) //loop is for testing purposes only
+		{
+			dst = new OtpPeer(tmp_dst[i].concat(yourIP));
+			sendMsg(client, type, dst, myIP, yourIP); //send a message
+			try {
+				Thread.sleep(5000);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			if(i == 1)
+				i=-1; //reset it to go back and replay the list
+		}
 	}
 }

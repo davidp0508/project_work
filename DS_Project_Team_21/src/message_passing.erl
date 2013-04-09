@@ -39,23 +39,25 @@ multicastSend({Name, Node, Payload, Users}) ->
  	end.
 
 
-recvMsg(NodeList) ->
+recvMsg(CurNodeList) ->
 	%Will need to be modified based on what we need to do at Erlang's level. 
-	io:format("In recvMsg()~n", []),
+	io:format("In recvMsg(), node list is ~p~n", [CurNodeList]),
 	receive
 		{Payload, FromName} ->        
 		io:format("Got message ~p from ~p!~n", [Payload, FromName]),
 		%io:format("Node list is ~p~n", [NodeList]),	%here we should check to see if we have a monitor connection to this node, and make one if not...if sender_server, check for the src@serverIP in the list (create as separate function)
 		case Payload of %here we can add a bunch of cases for tokens, etc...
 			{Sender, _, ack, _} -> io:format("Got an ack; done sending.~n", []),
-				   %SenderFN = getSenderFullName(FromName, Sender), %need this, but it fails now b/c Sender is a PID and not a name...must fix!
-				   updateNodes(NodeList, Sender),
+				   SenderFN = getSenderFullName(FromName, Sender), %need this, but it fails now b/c Sender is a PID and not a name...must fix!
+				   NodeList = updateNodes(CurNodeList, SenderFN),
+				   io:format("NodeList after call is ~p~n", [NodeList]),
 				   recvMsg(NodeList);
 			{Sender, Me, _, _} ->
 				 SenderFN = getSenderFullName(FromName, Sender),
 				 unicastSend({Sender, SenderFN, {Me, Sender, ack, 1}}),
 				 unicastSend({sender_server, FromName, {Me, sender_server, ack, 1}}), %need this line (right now) to make it respond and stop waiting 
-				 updateNodes(NodeList, Sender),
+				 NodeList = updateNodes(CurNodeList, SenderFN),
+				 io:format("NodeList after call is ~p~n", [NodeList]),
 				 %Logic will need to be added to make the payload dynamic instead of hard-coded
 				 recvMsg(NodeList);
 			_ -> io:format("Message does not match an expected format~n", []) %shouldn't happen unless the message is malformed
@@ -64,7 +66,7 @@ recvMsg(NodeList) ->
 	otherthing.
 
 
-updateNodes(NodeList, Candidate) ->
+updateNodes(CurNodeList, Candidate) ->
 	%This function is used to keep track of which nodes are monitored.
 	%Any node passed in that is not on the node list must be monitored 
 	%and then added to the node list. Nodes already on the list should 
@@ -73,12 +75,16 @@ updateNodes(NodeList, Candidate) ->
 	%and then removed. A timeout/heartbeat style of choosing when to remove
 	%the node may be implemented if necessary.
 	
-	case lists:member(Candidate, NodeList) of
+	%io:format("Candidate ~p in Current list ~p?~n", [Candidate, CurNodeList]),
+	case lists:member(Candidate, CurNodeList) of
 	        false ->
-	            io:format("Could not find ~p in list ~p~n", [Candidate, NodeList]),
-				lists:append(NodeList, atom_to_list(Candidate));
+	            io:format("Could not find ~p in list ~p~n", [Candidate, CurNodeList]),
+				lists:append(CurNodeList, [Candidate]);%,
+				%io:format("New list is ~p~n", [NodeList]);
+				%monitor();
 	        true ->
-				io:format("Found ~p in list ~p~n", [Candidate, NodeList])
+				io:format("Found ~p in list ~p~n", [Candidate, CurNodeList]),
+				NodeList = CurNodeList
 	end.
 
 
@@ -90,8 +96,7 @@ getSenderFullName(FromName, Sender) ->
 
 start(Name) ->
 	%IP = getMyIP(inet:getiflist()),
-	io:format("received name ~p~n", [Name]),
-	NodeList = [Name], %add self to global node list to monitor who is alive (work in progress; shouldn't include sender_server)
+	NodeList = [], %don't need to include self in this
 	case register(Name, spawn(message_passing, recvMsg, [NodeList])) of
 		true -> %yes -> 
 			io:format("Successful add~n");
