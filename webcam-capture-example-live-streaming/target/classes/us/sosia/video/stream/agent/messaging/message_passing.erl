@@ -3,22 +3,17 @@
 %% @author David Pearson
 %% @doc @todo Add description to token_ring.
 %% This module inspired by trigonakis.com's Intro to Erlang: Message Passing segment
-%NEW CODE 04/10/13
+
 %%To Do -- Receiver code, additional uni/multi capabilities, how to integrate Han's code.
 
 -module(message_passing).
--export([unicastSend/1, multicastSend/1, recvMsg/1, start/1, updateNodes/2, getSenderFullName/2]).%getMyIP/1]).
+-export([unicastSend/1, multicastSend/1, recvMsg/1, start/1, updateNodes/2, getSenderFullName/2]).
 
 
 unicastSend({Name, Node, Payload}) ->
 	io:format("Passed in name ~p, node ~p, and payload ~p~n", [Name, Node, Payload]),
 	{Name,Node}!{Payload,node()},
-	io:format("successfully sent message to ~p (~p)~n", [Name, Node]).%,
-	%case Payload of
-	%	ack -> io:format("sent ACK!~n", []), Return = ack; %we're sending an ACK, so we can safely return the fact that we got an ack
-	%	_ -> io:format("blah!~n", []), Return = Payload %need to get the response, not what I'm sending...
-	%end,
-	%Return.
+	io:format("successfully sent message to ~p (~p)~n", [Name, Node]).
 	%recvMsg() can't go here, b/c it doesn't return to RPC
 
 
@@ -30,9 +25,9 @@ multicastSend({Name, Node, Payload, Users}) ->
 											case UserList =/= [] of
 												true ->	[NextNodeInfo|_] = UserList,
 														{NextNodeName,_} = NextNodeInfo,
-														%io:format("NNI: ~p~n", [NextNodeName]), 
+														io:format("NNI: ~p~n", [NextNodeName]), 
 														multicastSend({NextNodeName, Node, Payload, UserList});
-												_ -> io:format("") %need to get rid of the printout
+												_ -> io:format("bleh") %need to get rid of the printout
 											end;
 		false -> io:format("failed to find user ~p~n", [Name]);
 		Values -> io:format("Failed and found ~p~n", [Values])
@@ -104,12 +99,3 @@ start(Name) ->
 		false -> %no -> 
 			io:format("Unable to add ~p~n", [Name])
 	end.
-
-
-%getMyIP(Interfaces) ->
-%	io:format("INterface list: ~p~n", [Interfaces]),
-%	case Interfaces of
-%		{ok,[List]} -> io:format("List of interfaces are ~p~n", List);
-%		_ -> io:format("Could not find any interfaces~n", []),
-%			IP = ""
-%	end.  
