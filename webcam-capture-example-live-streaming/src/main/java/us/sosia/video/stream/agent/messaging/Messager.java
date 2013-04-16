@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 
+import com.android.dx.util.ByteArray.MyInputStream;
 import com.ericsson.otp.erlang.OtpAuthException;
 import com.ericsson.otp.erlang.OtpConnection;
 import com.ericsson.otp.erlang.OtpErlangAtom;
@@ -21,29 +22,29 @@ public class Messager {
 	private static OtpConnection	connection;
 
 	private String			selfNode;
-	private String			local_server;
+	private String sender_server;
 	private String			cookie;
 
 	/**
 	 * 
 	 * @param selfNode - eg.client
-	 * @param local_server - eg. local_server@128.237.231.0
+	 * @param sender_server - eg. local_server@128.237.231.0
 	 * @param cookie - for example, test
 	 */
-	public Messager(String selfNode, String local_server, String cookie) {
+	public Messager(String selfNode, String sender_server, String cookie) {
 		this.selfNode = selfNode;
-		this.local_server = local_server;
+		this.sender_server = sender_server;
 		this.cookie = cookie;
-		
+		System.out.println("sender server: "+ sender_server.substring(0, sender_server.indexOf("@") + 1));
 		IPAddress ip = new IPAddress();
-		String myIP = ip.getIPaddress();
-		String yourIP = "192.168.1.59";//myIP; //should be whatever the other user's IP is, ultimately
-		String me = "david"; //will come from the user starting up the application, ultimately
-		String sender_server = "sender_server@";
-		//String tmp_dst = "shifa@"; //should come from node logic that knows other players
-		String[] tmp_dst = new String[2]; //just temporary for testing
-		tmp_dst[0] = "shifa@";
-		tmp_dst[1] = "joe@";
+		String myIP = ip.getIPaddress();//auto get my IP
+//		String yourIP = "192.168.1.59";//myIP; //should be whatever the other user's IP is, ultimately
+//		String me = "david"; //will come from the user starting up the application, ultimately
+//		String sender_server = "sender_server@";
+//		//String tmp_dst = "shifa@"; //should come from node logic that knows other players
+//		String[] tmp_dst = new String[2]; //just temporary for testing
+//		tmp_dst[0] = "shifa@";
+//		tmp_dst[1] = "joe@";
 		
 		/* construct nodes */
 		try {
@@ -56,7 +57,7 @@ public class Messager {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		initServers(selfNode, myIP, sender_server); //start up the servers
+		initServers(selfNode, myIP, sender_server.substring(0, sender_server.indexOf("@") + 1)); //start up the servers
 	}
 
 
@@ -239,6 +240,7 @@ public class Messager {
         
 		try {
 			System.out.println("Tuple as string before: " + withArgs(tuple).toString() + "\n");
+			System.out.println(connection);
 			connection.sendRPC("message_passing", "unicastSend", withArgs(tuple)); //unicast send
 			// connection.sendRPC("message_passing", "multicastSend", withArgs(mcTuple)); //multicast send
 		} catch (IOException e1) {
@@ -266,9 +268,10 @@ public class Messager {
 		return new OtpErlangObject[] { tup };
 	}
 
-	//This does not belong at this level. sendMsg should be called with an array of users, and the multicastSend RPC should be used. It is simple.
+	//TODO don't use this...This does not belong at this level. sendMsg should be called with an array of users, and the multicastSend RPC should be used. It is simple.
 	public void multicast(int clientNo, String content, NameIpPort[] ipArray){
 		for(int i=0;i<ipArray.length;i++){
+			System.out.println("sending to " + i + ipArray[i].hostname);
 			if(i!=clientNo){
 				sendMsg(content, ipArray[i].hostname, ipArray[i].ip);
 			}

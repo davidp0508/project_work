@@ -19,7 +19,7 @@ import us.sosia.video.stream.agent.messaging.NameIpPort;
 
 public class GameWindow {
 	protected final JFrame window;
-	public final int MAXVNUM = 3;
+	public final int MAXVNUM = 2; //TODO make sure configured same as NUM_PLAYERS
 
 	private JLabel timerLabel = new JLabel("Time Remaining");
 	public JTextField timerfield = new JTextField();
@@ -37,22 +37,22 @@ public class GameWindow {
 
 	public VideoPanel[] videoPanelArray;
 	public NameIpPort[] ipArray;
-	public Integer hostNo;
+	public Integer myHostId;
 
 	public JButton submitbutton = new JButton("Submit");	
 
 	private Messager messager;
-	public GameWindow(Dimension dimension, String testip, int ihostNo, final NameIpPort[] ipArr) {
+	public GameWindow(Dimension dimension, String testip, int hostId, final NameIpPort[] ipArr) {
 		super();
 
 		videoPanelArray = new VideoPanel[MAXVNUM];
 		JLabel[] labelArray = new JLabel[MAXVNUM];
-		this.hostNo = ihostNo;
+		this.myHostId = hostId;
 		ipArray = ipArr;
 
-		messager = MessageFactory.getMessager("client", "local_server" + hostNo.toString() + "@" + testip, "test");
+		messager = MessageFactory.getMessager("client", "sender_server" + this.myHostId.toString() + "@" + testip, "test");
 
-		this.window = new JFrame("Act Something " + ipArray[hostNo].hostname);
+		this.window = new JFrame("Act Something " + ipArray[myHostId].hostname);
 		this.window.setSize(dimension.width*4, dimension.height*3 + 60);	
 
 		JPanel pane = new JPanel();
@@ -101,10 +101,10 @@ public class GameWindow {
 					return;
 
 				for(int i=0;i<ipArray.length;i++){
-					if(i!=hostNo)
-					    messager.sendMsg("ANSWER " + ipArray[hostNo].hostname  + " " + answerfield.getText(), ipArray[i].hostname, ipArray[i].ip);
+					if(i!=myHostId)
+					    messager.sendMsg("ANSWER " + ipArray[myHostId].hostname  + " " + answerfield.getText(), ipArray[i].hostname, ipArray[i].ip);
 				}
-				wanswers.setText(wanswers.getText() + ipArray[hostNo].hostname + " " + answerfield.getText() + "\n");
+				wanswers.setText(wanswers.getText() + ipArray[myHostId].hostname + " " + answerfield.getText() + "\n");
 		   }
         });
 
@@ -118,8 +118,9 @@ public class GameWindow {
 		videoPanelArray[0].setBounds(0, 20, dimension.width, dimension.height);
 		labelArray[1].setBounds(120, 20 + dimension.height , 100, 20);
 		videoPanelArray[1].setBounds(0, 40 + dimension.height, dimension.width, dimension.height);
-		labelArray[2].setBounds(120, 40 + 2*dimension.height , 100, 20);
-		videoPanelArray[2].setBounds(0, 60 + 2*dimension.height, dimension.width, dimension.height);
+		//TODO auto layout according to num_players
+//		labelArray[2].setBounds(120, 40 + 2*dimension.height , 100, 20);
+//		videoPanelArray[2].setBounds(0, 60 + 2*dimension.height, dimension.width, dimension.height);
 
 		actorLabel.setBounds(10, 0 , 100, 20);
 		pane.add(actorLabel);
