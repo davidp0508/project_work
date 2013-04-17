@@ -1,8 +1,10 @@
 package us.sosia.video.stream.common;
 
-public class CharadesConfig {
+public final class CharadesConfig {
 	/** application high-level and UI paras */
 	public static final String	APP_NAME		= "Act Something ";
+	public final static String myName = "dmei";//TODO configured via GHS
+	public final static String yourName = "hanyang";//TODO configured via GHS
 	// number of players decide the number of video window
 	public final static int		NUM_PLAYERS		= 2;
 	// seconds for a round of game.

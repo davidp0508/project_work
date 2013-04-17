@@ -50,17 +50,18 @@ public class GameWindow {
 	/** messaging stuff */
 	public NameIpPort[] ipArray;
 	public Integer myHostId;
-	private Messager messager;
+	private Messager sender_client;
 	//TODO
-	private final OtpSelf selfNode;
+//	private final OtpSelf selfNode;
 	
 	public GameWindow(Dimension dimension, String testip, int hostId, final NameIpPort[] ipArr) throws IOException {
 		super();
 		/** messaging */
-		selfNode = new OtpSelf("dmei", CharadesConfig.COOKIE);
+//		selfNode = new OtpSelf("dmei", CharadesConfig.COOKIE);
 		this.myHostId = hostId;
 		ipArray = ipArr;
-		messager = MessageFactory.getMessager("client", CharadesConfig.SENDER_PREFIX + this.myHostId.toString() + "@" + testip, CharadesConfig.COOKIE);
+		sender_client = MessageFactory.getMessager("client", CharadesConfig.SENDER_PREFIX + this.myHostId.toString() + "@" + testip, CharadesConfig.COOKIE);
+		System.out.println("Gamewindow>>>" + sender_client);
 	
 		/** UI */
 		videoPanelArray = new VideoPanel[MAXVNUM];
@@ -116,7 +117,8 @@ public class GameWindow {
 				//TODO multicast
 				for(int i=0;i<ipArray.length;i++){
 					if(i!=myHostId) {
-						messager.sendMsg(selfNode, new OtpErlangAtom(MSGTYPE.ANSWER), new OtpPeer(ipArray[myHostId].hostname + "@" + ipArray[myHostId].ip), messager.getMyIp(), ipArray[i].ip);
+						sender_client.sendMsg(new OtpErlangAtom(MSGTYPE.ANSWER), new OtpPeer(ipArray[i].otpString), ipArray[i].ip);
+//						messager.sendMsg(selfNode, new OtpErlangAtom(MSGTYPE.ANSWER), new OtpPeer(ipArray[myHostId].hostname + "@" + ipArray[myHostId].ip), messager.getMyIp(), ipArray[i].ip);
 //					    messager.sendMsg("ANSWER " + ipArray[myHostId].hostname  + " " + answerfield.getText(), ipArray[i].hostname, ipArray[i].ip);
 					}
 				}

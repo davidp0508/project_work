@@ -7,16 +7,18 @@ import com.ericsson.otp.erlang.*;
 
 public class Listener implements Runnable {	
 
-	private String name;
+	private String selfName;
 	private String ip;
 	private NameIpPort[] ipArray;
 	private ArrayList<Message> receivedMsgs;
-	public Listener(String name, String ip, ArrayList<Message> receivedMsgs, NameIpPort[] ipArray){
-		this.name = name;
+
+	public Listener(String selfName, String ip, ArrayList<Message> receivedMsgs, NameIpPort[] ipArray){
+		this.selfName = selfName;
 		this.ip = ip;
 		this.ipArray = ipArray;
 		this.receivedMsgs = receivedMsgs;
 	}
+
 	@Override
 	public void run() {
 //		IPAddress ip = new IPAddress();
@@ -24,12 +26,12 @@ public class Listener implements Runnable {
 		OtpNode node = null;
 
 		try {
-			node = new OtpNode(name + "@" + ip, "test");
+			node = new OtpNode(selfName + "@" + ip, "test");
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
 		
-        OtpMbox mbox = node.createMbox(name); //just to make it easier to follow the same format
+        OtpMbox mbox = node.createMbox(selfName); //just to make it easier to follow the same format
         OtpErlangAtom SHUTDOWN = new OtpErlangAtom("shutdown");
         System.out.println("Listener ("+node.toString()+") started\n");
         
@@ -37,7 +39,7 @@ public class Listener implements Runnable {
         {
             OtpErlangObject message = null;
 			try {
-				//System.out.println("Waiting to receive...\n");
+//				System.out.println("Waiting to receive...\n");
 				message = mbox.receive();
 				//System.out.println("Got message "+message+"\n");
 			} catch (OtpErlangExit e) {

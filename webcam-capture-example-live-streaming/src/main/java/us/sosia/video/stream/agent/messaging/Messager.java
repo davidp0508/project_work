@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 
-import com.android.dx.util.ByteArray.MyInputStream;
 import com.ericsson.otp.erlang.OtpAuthException;
 import com.ericsson.otp.erlang.OtpConnection;
 import com.ericsson.otp.erlang.OtpErlangAtom;
@@ -18,7 +17,7 @@ import com.ericsson.otp.erlang.OtpSelf;
 
 public class Messager {
 	private OtpSelf			client;
-	private OtpPeer			server;
+	private OtpPeer			sender_server;
 	private OtpConnection	connection;
 	private String myIp;
 //	private String					selfNode;
@@ -31,7 +30,7 @@ public class Messager {
 	}
 
 	public OtpPeer getServer() {
-		return server;
+		return sender_server;
 	}
 
 	public String getMyIp() {
@@ -63,7 +62,8 @@ public class Messager {
 
 		/* construct nodes */
 		try {
-			client = new OtpSelf(selfName, cookie);
+			client = new OtpSelf(selfName + "@".concat(myIp), cookie);
+			System.out.println("construct self node: " + client);
 			/*
 			 * System.out.println("create client " + selfNode); server = new OtpPeer(local_server); // must create a server instance on each node to handle sending/receiving
 			 * connection = client.connect(server); System.out.println("connected to server");
@@ -76,7 +76,7 @@ public class Messager {
 		initServers(selfName, myIp, sender_server.substring(0, sender_server.indexOf("@") + 1)); // start up the servers
 	}
 
-	private void initServers(String selfNode, String myIP, String sender_server) {
+	private void initServers(String selfNode, String myIP, String serverName) {
 		/*
 		 * Sets up local server services on each node. The sender_server takes Java to Erlang sendRPC calls and integrates with the Erlang lower layer to perform message passing.
 		 * The receiver_server receives all messages from other nodes and allows for Java-level processing.
@@ -118,9 +118,10 @@ public class Messager {
 		// e2.printStackTrace();
 		// }
 
-		server = new OtpPeer(sender_server.concat(myIP)); // must create a sender_server instance on each node to handle sending
+		sender_server = new OtpPeer(serverName.concat(myIP)); // must create a sender_server instance on each node to handle sending
 		try {
-			connection = client.connect(server);
+			connection = client.connect(sender_server);
+			System.out.println("Messager>>>client connect to sender_server "+sender_server);
 		} catch (UnknownHostException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -134,9 +135,10 @@ public class Messager {
 	}
 
 	/* David's implementation of sendMsg() */
-	public void sendMsg(OtpSelf self, OtpErlangAtom type, OtpPeer dst, String myIP, String yourIP) {
-		System.out.println("David's send...........");
-		System.out.println(self + " "+dst+" "+ yourIP);
+	public void sendMsg(OtpErlangAtom type, OtpPeer dst, String dstIP) {
+//	public void sendMsg(OtpSelf self, OtpErlangAtom type, OtpPeer dst, String myIP, String yourIP) {
+		System.out.print("David's send...........");
+		System.out.println(client + " "+dst+" "+ dstIP);
 		// Unicast Stuff
 		OtpErlangObject[] payload = new OtpErlangObject[4]; // contains src, dst, type, seq #
 		OtpErlangObject[] msg = new OtpErlangObject[3];
@@ -146,7 +148,7 @@ public class Messager {
 
 		// A more advanced payload
 		//TODO the "self" param can be used to identify sender??
-		payload[0] = new OtpErlangAtom(self.alive()); // we only want the username
+		payload[0] = new OtpErlangAtom(client.alive()); // we only want the username
 		payload[1] = new OtpErlangAtom(dst.alive()); // this will later most likely be passed in as an argument of type OtpPeer
 		payload[2] = type;
 		payload[3] = new OtpErlangAtom("1"); // this will need to be defined like in our labs
@@ -162,11 +164,11 @@ public class Messager {
 		OtpErlangTuple temp = null;
 		//TODO the hard-coded chunk below should be replaced by node logic to get userList
 		userList[0][0] = "david";
-		userList[0][1] = myIP;// "192.168.1.48";
+		userList[0][1] = myIp;// "192.168.1.48";
 		userList[1][0] = "shifa";
-		userList[1][1] = yourIP;// "192.168.1.48";
+		userList[1][1] = dstIP;// "192.168.1.48";
 		userList[2][0] = "dan";
-		userList[2][1] = myIP;// "192.168.1.48";
+		userList[2][1] = myIp;// "192.168.1.48";
 		// Erlang's list of tuples looks like this: [{david, '192.168.1.44'}, {joe, '192.168.1.44'}, {local_server, '192.168.1.44'}]
 		
 		
@@ -295,7 +297,7 @@ public class Messager {
 
 	@Override
 	public String toString() {
-		return client + "<->" + server;
+		return client + "<->" + sender_server;
 	}
 
 }

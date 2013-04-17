@@ -25,7 +25,6 @@ public class StreamClient {
 
 	// currently I tested all the client in my own machine
 	private final static String				testip			= "128.237.118.211";
-	private final static String myName = "dmei";
 	//game constants
 	private final static int num_players = CharadesConfig.NUM_PLAYERS;
 	private final static int round_time = CharadesConfig.MAXSEC;
@@ -51,7 +50,7 @@ public class StreamClient {
 	private static int						currentsec;
 	private static boolean					stop;
 
-	private static Messager					messager;
+	private static Messager					sender_client;
 	private static int						state;
 
 	// client ID: each client is assigned a client No to identify.
@@ -62,13 +61,14 @@ public class StreamClient {
 		int winner;
 
 		// build a messager to send msgs to other
-		messager = MessageFactory.getMessager("client" + args[0], CharadesConfig.SENDER_PREFIX + args[0] + "@" + testip, "test");
+		sender_client = MessageFactory.getMessager("client", CharadesConfig.SENDER_PREFIX + args[0] + "@" + testip, "test");
+		System.out.println("StreamClient>>>"+sender_client);
 
 		playerId = Integer.parseInt(args[0]);
 
 		// three test case
-		ipArray[0] = new NameIpPort(myName, testip, 20000);
-		ipArray[1] = new NameIpPort("hanyang", testip, 20001);
+		ipArray[0] = new NameIpPort(CharadesConfig.myName, testip, 20000);
+		ipArray[1] = new NameIpPort(CharadesConfig.yourName, testip, 20001);//TODO get from GHS
 		// ipArray[2] = new NameIpPort("hyang", testip, 20002);
 
 		try {
@@ -97,7 +97,7 @@ public class StreamClient {
 		}
 
 		// timer start
-		Timer timer = new Timer(CharadesConfig.MAXSEC);
+		Timer timer = new Timer(round_time);
 		Thread t = new Thread(timer);
 		t.start();
 
@@ -170,7 +170,7 @@ public class StreamClient {
 						scores[winner]++;
 						String str_scores = getScoreStr();
 						displayWindow.scorecard.setText(str_scores);
-						messager.multicast(playerId, "SCOREUPDATE " + compressScores(), ipArray);
+						sender_client.multicast(playerId, "SCOREUPDATE " + compressScores(), ipArray);
 
 						change2GUESSING();
 						continue;
@@ -216,16 +216,16 @@ public class StreamClient {
 	private static void change2ACTING() {
 		state = CharadesConfig.ACTING;
 		displayWindow.submitbutton.setEnabled(false);
-		messager.multicast(playerId, "BEGIN ", ipArray);// TODO change to real multicast
+		sender_client.multicast(playerId, "BEGIN ", ipArray);// TODO change to real multicast
 		stop = false;
 	}
 
 	private static void change2GUESSING() {
 		state = CharadesConfig.GUESSING;
 		displayWindow.submitbutton.setEnabled(true);
-		messager.multicast(playerId, "ROUND_FINISHED " + " ", ipArray);
+		sender_client.multicast(playerId, "ROUND_FINISHED " + " ", ipArray);
 		displayWindow.changeActor((++actorId) % 3, dimension.height);
-		messager.sendMsg("TOKEN " + " ", ipArray[(playerId + 1) % num_players].hostname, ipArray[(playerId + 1) % num_players].ip);
+		sender_client.sendMsg("TOKEN " + " ", ipArray[(playerId + 1) % num_players].hostname, ipArray[(playerId + 1) % num_players].ip);
 		currentsec = round_time;
 		stop = true;
 
