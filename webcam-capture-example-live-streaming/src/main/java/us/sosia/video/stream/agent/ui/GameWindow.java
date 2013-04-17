@@ -13,14 +13,15 @@ import javax.swing.JPanel;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
 
-import com.ericsson.otp.erlang.OtpErlangAtom;
-import com.ericsson.otp.erlang.OtpPeer;
-import com.ericsson.otp.erlang.OtpSelf;
-
 import us.sosia.video.stream.agent.messaging.MSGTYPE;
 import us.sosia.video.stream.agent.messaging.MessageFactory;
 import us.sosia.video.stream.agent.messaging.Messager;
 import us.sosia.video.stream.agent.messaging.NameIpPort;
+import us.sosia.video.stream.common.CharadesConfig;
+
+import com.ericsson.otp.erlang.OtpErlangAtom;
+import com.ericsson.otp.erlang.OtpPeer;
+import com.ericsson.otp.erlang.OtpSelf;
 
 
 public class GameWindow {
@@ -49,7 +50,6 @@ public class GameWindow {
 	/** messaging stuff */
 	public NameIpPort[] ipArray;
 	public Integer myHostId;
-	private static final String	COOKIE	= "test";
 	private Messager messager;
 	//TODO
 	private final OtpSelf selfNode;
@@ -57,16 +57,16 @@ public class GameWindow {
 	public GameWindow(Dimension dimension, String testip, int hostId, final NameIpPort[] ipArr) throws IOException {
 		super();
 		/** messaging */
-		selfNode = new OtpSelf("dmei", COOKIE);
+		selfNode = new OtpSelf("dmei", CharadesConfig.COOKIE);
 		this.myHostId = hostId;
 		ipArray = ipArr;
-		messager = MessageFactory.getMessager("client", "sender_server" + this.myHostId.toString() + "@" + testip, COOKIE);
+		messager = MessageFactory.getMessager("client", CharadesConfig.SENDER_PREFIX + this.myHostId.toString() + "@" + testip, CharadesConfig.COOKIE);
 	
 		/** UI */
 		videoPanelArray = new VideoPanel[MAXVNUM];
 		JLabel[] labelArray = new JLabel[MAXVNUM];
 		
-		this.window = new JFrame("Act Something " + ipArray[myHostId].hostname);
+		this.window = new JFrame(CharadesConfig.APP_NAME + ipArray[myHostId].hostname);
 		this.window.setSize(dimension.width*4, dimension.height*3 + 60);	
 
 		JPanel pane = new JPanel();
@@ -116,7 +116,7 @@ public class GameWindow {
 				//TODO multicast
 				for(int i=0;i<ipArray.length;i++){
 					if(i!=myHostId) {
-						messager.sendMsg(selfNode, new OtpErlangAtom(MSGTYPE.ANSWER), new OtpPeer(ipArray[myHostId].hostname), messager.getMyIp(), ipArray[i].ip);
+						messager.sendMsg(selfNode, new OtpErlangAtom(MSGTYPE.ANSWER), new OtpPeer(ipArray[myHostId].hostname + "@" + ipArray[myHostId].ip), messager.getMyIp(), ipArray[i].ip);
 //					    messager.sendMsg("ANSWER " + ipArray[myHostId].hostname  + " " + answerfield.getText(), ipArray[i].hostname, ipArray[i].ip);
 					}
 				}
