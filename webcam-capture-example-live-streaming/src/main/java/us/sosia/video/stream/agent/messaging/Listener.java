@@ -7,12 +7,11 @@ import com.ericsson.otp.erlang.*;
 
 public class Listener implements Runnable {	
 
-	String name;
-	String ip;
-	NameIpPort[] ipArray;
-	ArrayList<Message> receivedMsgs;
+	private String name;
+	private String ip;
+	private NameIpPort[] ipArray;
+	private ArrayList<Message> receivedMsgs;
 	public Listener(String name, String ip, ArrayList<Message> receivedMsgs, NameIpPort[] ipArray){
-		
 		this.name = name;
 		this.ip = ip;
 		this.ipArray = ipArray;
@@ -46,7 +45,7 @@ public class Listener implements Runnable {
 			} catch (OtpErlangDecodeException e) {
 				e.printStackTrace();
 			}
-			System.out.format("received %s%n", message);
+			System.out.format("Listener>>received %s%n", message);
             OtpErlangTuple messageTuple = (OtpErlangTuple) message;
             
             String content = messageTuple.elementAt(0).toString();
@@ -66,7 +65,7 @@ public class Listener implements Runnable {
             //System.out.println(received.name + received.ip + received.type + received.content);
             synchronized(receivedMsgs){
             	receivedMsgs.add(received);
-            	System.out.println(receivedMsgs.size() + receivedMsgs.get(0).ip);           	
+            	System.out.println("Listener>>"+receivedMsgs.size() + receivedMsgs.get(0).ip);           	
             }
 			//System.out.println(messageTuple.elementAt(0));
 			//System.out.println(messageTuple.elementAt(1));

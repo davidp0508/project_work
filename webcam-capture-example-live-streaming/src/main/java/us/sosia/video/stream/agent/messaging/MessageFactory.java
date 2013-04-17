@@ -1,13 +1,11 @@
 package us.sosia.video.stream.agent.messaging;
 
-import java.util.HashMap;
-
 public class MessageFactory {
 	private static Messager messager = null;
 //	private static HashMap<String, String> config;
 
-	private MessageFactory(String selfNode, String peerNode, String cookie) {
-		messager = new Messager(selfNode, peerNode, cookie);
+	private MessageFactory(String selfNode, String sender_server, String cookie) {
+		messager = new Messager(selfNode, sender_server, cookie);
 	}
 
 //	public static Messager getMessager(HashMap<String, String> config) {
@@ -19,12 +17,13 @@ public class MessageFactory {
 	/**
 	 * 
 	 * @param selfNode - eg.client
-	 * @param peerNode - eg. local_server@128.237.231.0
+	 * @param sender_server - eg. sender_server0@128.237.231.0
 	 * @param cookie - for example, test
 	 */
-	public static Messager getMessager(String selfNode, String peerNode, String cookie) {
+	//TODO perhaps pass in playerId
+	public static Messager getMessager(String selfNode, String sender_server, String cookie) {
 		if (messager == null)
-			messager = new Messager(selfNode, peerNode, cookie);
+			messager = new Messager(selfNode, sender_server, cookie);
 		return messager;
 	}
 }
