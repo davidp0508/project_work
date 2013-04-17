@@ -135,10 +135,8 @@ public class Messager {
 	}
 
 	/* David's implementation of sendMsg() */
-	public void sendMsg(OtpErlangAtom type, OtpPeer dst, String dstIP) {
+	public void unicastMsg(OtpErlangAtom type, OtpPeer dst, String dstIP, String content) {
 //	public void sendMsg(OtpSelf self, OtpErlangAtom type, OtpPeer dst, String myIP, String yourIP) {
-		System.out.print("David's send...........");
-		System.out.println(client + " "+dst+" "+ dstIP);
 		// Unicast Stuff
 		OtpErlangObject[] payload = new OtpErlangObject[4]; // contains src, dst, type, seq #
 		OtpErlangObject[] msg = new OtpErlangObject[3];
@@ -147,11 +145,12 @@ public class Messager {
 		// msg[2] = new OtpErlangAtom("hello_world"); //a basic payload
 
 		// A more advanced payload
-		//TODO the "self" param can be used to identify sender??
+		//TODO the "self" param can be used to identify sender?? consider remove it ...
 		payload[0] = new OtpErlangAtom(client.alive()); // we only want the username
 		payload[1] = new OtpErlangAtom(dst.alive()); // this will later most likely be passed in as an argument of type OtpPeer
 		payload[2] = type;
-		payload[3] = new OtpErlangAtom("1"); // this will need to be defined like in our labs
+		//TODO remove hardcode
+		payload[3] = new OtpErlangAtom(content); // this will need to be defined like in our labs
 		msg[2] = new OtpErlangTuple(payload);
 
 		OtpErlangTuple tuple = new OtpErlangTuple(msg);
