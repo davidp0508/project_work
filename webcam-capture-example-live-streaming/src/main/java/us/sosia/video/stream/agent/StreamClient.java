@@ -2,6 +2,7 @@ package us.sosia.video.stream.agent;
 
 import java.awt.Dimension;
 import java.awt.image.BufferedImage;
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 
@@ -22,7 +23,7 @@ import us.sosia.video.stream.handler.StreamFrameListener;
 public class StreamClient {
 
 	// currently I tested all the client in my own machine
-	private final static String				testip			= "192.168.0.9";
+	private final static String				testip			= "128.237.118.211";
 	// number of players decide the number of video window
 	private final static int				NUM_PLAYERS		= 2;
 	// seconds for a round of game.
@@ -72,7 +73,11 @@ public class StreamClient {
 		ipArray[1] = new NameIpPort("hanyang", testip, 20001);
 		// ipArray[2] = new NameIpPort("hyang", testip, 20002);
 
-		displayWindow = new GameWindow(dimension, testip, clientId, ipArray);
+		try {
+			displayWindow = new GameWindow(dimension, testip, clientId, ipArray);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 
 		scores[0] = 0;
 		scores[1] = 0;

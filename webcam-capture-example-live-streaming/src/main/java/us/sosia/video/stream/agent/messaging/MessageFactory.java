@@ -10,11 +10,11 @@ public class MessageFactory {
 		messager = new Messager(selfNode, peerNode, cookie);
 	}
 
-	public static Messager getMessager(HashMap<String, String> config) {
-		if (messager == null)
-			messager = new Messager(config.get("selfNode"), config.get("peerNode"), config.get("cookie"));
-		return messager;
-	}
+//	public static Messager getMessager(HashMap<String, String> config) {
+//		if (messager == null)
+//			messager = new Messager(config.get("selfNode"), config.get("peerNode"), config.get("cookie"));
+//		return messager;
+//	}
 
 	/**
 	 * 

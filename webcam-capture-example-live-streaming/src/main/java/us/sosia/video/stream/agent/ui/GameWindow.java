@@ -4,6 +4,7 @@ import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.IOException;
 
 import javax.swing.JButton;
 import javax.swing.JFrame;
@@ -12,12 +13,18 @@ import javax.swing.JPanel;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
 
+import com.ericsson.otp.erlang.OtpErlangAtom;
+import com.ericsson.otp.erlang.OtpPeer;
+import com.ericsson.otp.erlang.OtpSelf;
+
+import us.sosia.video.stream.agent.messaging.MSGTYPE;
 import us.sosia.video.stream.agent.messaging.MessageFactory;
 import us.sosia.video.stream.agent.messaging.Messager;
 import us.sosia.video.stream.agent.messaging.NameIpPort;
 
 
 public class GameWindow {
+	/** UI stuff */
 	protected final JFrame window;
 	public final int MAXVNUM = 2; //TODO make sure configured same as NUM_PLAYERS
 
@@ -35,23 +42,30 @@ public class GameWindow {
 
 	public JLabel actorLabel = new JLabel("Actor: ");
 
+	public JButton submitbutton = new JButton("Submit");	
+	
 	public VideoPanel[] videoPanelArray;
+	
+	/** messaging stuff */
 	public NameIpPort[] ipArray;
 	public Integer myHostId;
-
-	public JButton submitbutton = new JButton("Submit");	
-
+	private static final String	COOKIE	= "test";
 	private Messager messager;
-	public GameWindow(Dimension dimension, String testip, int hostId, final NameIpPort[] ipArr) {
+	//TODO
+	private final OtpSelf selfNode;
+	
+	public GameWindow(Dimension dimension, String testip, int hostId, final NameIpPort[] ipArr) throws IOException {
 		super();
-
-		videoPanelArray = new VideoPanel[MAXVNUM];
-		JLabel[] labelArray = new JLabel[MAXVNUM];
+		/** messaging */
+		selfNode = new OtpSelf("dmei", COOKIE);
 		this.myHostId = hostId;
 		ipArray = ipArr;
-
-		messager = MessageFactory.getMessager("client", "sender_server" + this.myHostId.toString() + "@" + testip, "test");
-
+		messager = MessageFactory.getMessager("client", "sender_server" + this.myHostId.toString() + "@" + testip, COOKIE);
+	
+		/** UI */
+		videoPanelArray = new VideoPanel[MAXVNUM];
+		JLabel[] labelArray = new JLabel[MAXVNUM];
+		
 		this.window = new JFrame("Act Something " + ipArray[myHostId].hostname);
 		this.window.setSize(dimension.width*4, dimension.height*3 + 60);	
 
@@ -99,10 +113,12 @@ public class GameWindow {
 			public void actionPerformed(ActionEvent e){
 				if(answerfield.getText().isEmpty())
 					return;
-
+				//TODO multicast
 				for(int i=0;i<ipArray.length;i++){
-					if(i!=myHostId)
-					    messager.sendMsg("ANSWER " + ipArray[myHostId].hostname  + " " + answerfield.getText(), ipArray[i].hostname, ipArray[i].ip);
+					if(i!=myHostId) {
+						messager.sendMsg(selfNode, new OtpErlangAtom(MSGTYPE.ANSWER), new OtpPeer(ipArray[myHostId].hostname), messager.getMyIp(), ipArray[i].ip);
+//					    messager.sendMsg("ANSWER " + ipArray[myHostId].hostname  + " " + answerfield.getText(), ipArray[i].hostname, ipArray[i].ip);
+					}
 				}
 				wanswers.setText(wanswers.getText() + ipArray[myHostId].hostname + " " + answerfield.getText() + "\n");
 		   }
