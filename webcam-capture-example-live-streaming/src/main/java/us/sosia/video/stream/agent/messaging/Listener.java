@@ -7,17 +7,18 @@ import com.ericsson.otp.erlang.*;
 
 public class Listener implements Runnable {	
 
-	String name;
-	String ip;
-	NameIpPort[] ipArray;
-	ArrayList<Message> receivedMsgs;
-	public Listener(String name, String ip, ArrayList<Message> receivedMsgs, NameIpPort[] ipArray){
-		
-		this.name = name;
+	private String selfName;
+	private String ip;
+	private NameIpPort[] ipArray;
+	private ArrayList<Message> receivedMsgs;
+
+	public Listener(String selfName, String ip, ArrayList<Message> receivedMsgs, NameIpPort[] ipArray){
+		this.selfName = selfName;
 		this.ip = ip;
 		this.ipArray = ipArray;
 		this.receivedMsgs = receivedMsgs;
 	}
+
 	@Override
 	public void run() {
 //		IPAddress ip = new IPAddress();
@@ -25,12 +26,12 @@ public class Listener implements Runnable {
 		OtpNode node = null;
 
 		try {
-			node = new OtpNode(name + "@" + ip, "test");
+			node = new OtpNode(selfName + "@" + ip, "test");
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
 		
-        OtpMbox mbox = node.createMbox(name); //just to make it easier to follow the same format
+        OtpMbox mbox = node.createMbox(selfName); //just to make it easier to follow the same format
         OtpErlangAtom SHUTDOWN = new OtpErlangAtom("shutdown");
         System.out.println("Listener ("+node.toString()+") started\n");
         
@@ -38,7 +39,7 @@ public class Listener implements Runnable {
         {
             OtpErlangObject message = null;
 			try {
-				//System.out.println("Waiting to receive...\n");
+//				System.out.println("Waiting to receive...\n");
 				message = mbox.receive();
 				//System.out.println("Got message "+message+"\n");
 			} catch (OtpErlangExit e) {
@@ -46,7 +47,7 @@ public class Listener implements Runnable {
 			} catch (OtpErlangDecodeException e) {
 				e.printStackTrace();
 			}
-			System.out.format("received %s%n", message);
+			System.out.format("Listener>>received %s%n", message);
             OtpErlangTuple messageTuple = (OtpErlangTuple) message;
             
             String content = messageTuple.elementAt(0).toString();
@@ -57,6 +58,7 @@ public class Listener implements Runnable {
             
             String srcName = "";
             
+            //TODO
             String type = content.substring(0, content.indexOf(' '));
             content = content.substring(content.indexOf(' ')+1);
             for (int i=0;i<ipArray.length;i++)
@@ -66,7 +68,7 @@ public class Listener implements Runnable {
             //System.out.println(received.name + received.ip + received.type + received.content);
             synchronized(receivedMsgs){
             	receivedMsgs.add(received);
-            	System.out.println(receivedMsgs.size() + receivedMsgs.get(0).ip);           	
+            	System.out.println("Listener>>"+receivedMsgs.size() + receivedMsgs.get(0).ip);           	
             }
 			//System.out.println(messageTuple.elementAt(0));
 			//System.out.println(messageTuple.elementAt(1));

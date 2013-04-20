@@ -4,6 +4,7 @@ import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.IOException;
 
 import javax.swing.JButton;
 import javax.swing.JFrame;
@@ -12,52 +13,66 @@ import javax.swing.JPanel;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
 
+import us.sosia.video.stream.agent.messaging.MSGTYPE;
 import us.sosia.video.stream.agent.messaging.MessageFactory;
 import us.sosia.video.stream.agent.messaging.Messager;
 import us.sosia.video.stream.agent.messaging.NameIpPort;
+import us.sosia.video.stream.common.CharadesConfig;
 
+import com.ericsson.otp.erlang.OtpErlangAtom;
+import com.ericsson.otp.erlang.OtpPeer;
 
 public class GameWindow {
-	protected final JFrame window;
-	public final int MAXVNUM = 3;
+	/** UI stuff */
+	protected final JFrame	window;
+	public final int		MAXVNUM			= 2;								// TODO make sure configured same as NUM_PLAYERS
 
-	private JLabel timerLabel = new JLabel("Time Remaining");
-	public JTextField timerfield = new JTextField();
+	private JLabel			timerLabel		= new JLabel("Time Remaining");
+	public JTextField		timerfield		= new JTextField();
 
-	private JLabel scoreLabel = new JLabel("Scorecard:");
-	public JTextArea scorecard = new JTextArea(1, 100);
+	private JLabel			scoreLabel		= new JLabel("Scorecard:");
+	public JTextArea		scorecard		= new JTextArea(1, 100);
 
-	private JLabel answersLabel = new JLabel("Guessed Answers:");
-	public JTextArea wanswers = new JTextArea(1, 200);
+	private JLabel			answersLabel	= new JLabel("Guessed Answers:");
+	public JTextArea		wanswers		= new JTextArea(1, 200);
 
-	private JLabel answerLabel = new JLabel("Answer");
-	public JTextField answerfield = new JTextField();
+	private JLabel			answerLabel		= new JLabel("Answer");
+	public JTextField		answerfield		= new JTextField();
 
-	public JLabel actorLabel = new JLabel("Actor: ");
+	public JLabel			actorLabel		= new JLabel("Actor: ");
 
-	public VideoPanel[] videoPanelArray;
-	public NameIpPort[] ipArray;
-	public Integer hostNo;
+	public JButton			submitbutton	= new JButton("Submit");
 
-	public JButton submitbutton = new JButton("Submit");	
+	public VideoPanel[]		videoPanelArray;
 
-	private Messager messager;
-	public GameWindow(Dimension dimension, String testip, int ihostNo, final NameIpPort[] ipArr) {
+	/** messaging stuff */
+	public NameIpPort[]		ipArray;
+	public Integer			myHostId;
+	private Messager		sender_client;
+
+	// TODO
+	// private final OtpSelf selfNode;
+
+	public GameWindow(Dimension dimension, String testip, int hostId, final NameIpPort[] ipArr) throws IOException {
 		super();
+		/** messaging */
+		// selfNode = new OtpSelf("dmei", CharadesConfig.COOKIE);
+		this.myHostId = hostId;
+		ipArray = ipArr;
+		sender_client = MessageFactory.getMessager("client", CharadesConfig.SENDER_PREFIX + this.myHostId.toString() + "@" + testip,
+				CharadesConfig.COOKIE);
+		System.out.println("Gamewindow>>>" + sender_client);
 
+		/** UI */
 		videoPanelArray = new VideoPanel[MAXVNUM];
 		JLabel[] labelArray = new JLabel[MAXVNUM];
-		this.hostNo = ihostNo;
-		ipArray = ipArr;
 
-		messager = MessageFactory.getMessager("client", "local_server" + hostNo.toString() + "@" + testip, "test");
-
-		this.window = new JFrame("Act Something " + ipArray[hostNo].hostname);
-		this.window.setSize(dimension.width*4, dimension.height*3 + 60);	
+		this.window = new JFrame(CharadesConfig.APP_NAME + ipArray[myHostId].hostname);
+		this.window.setSize(dimension.width * 4, dimension.height * 3 + 60);
 
 		JPanel pane = new JPanel();
 		pane.setLayout(null);
-		Font font = new Font("Courier New" ,0, 11);
+		Font font = new Font("Courier New", 0, 11);
 
 		timerLabel.setFont(font);
 		timerLabel.setBounds(600, 0, 100, 10);
@@ -66,7 +81,7 @@ public class GameWindow {
 		timerfield.setEditable(false);
 		timerfield.setFont(font);
 		timerfield.setBounds(600, 30, 100, 20);
-		pane.add(timerfield);		
+		pane.add(timerfield);
 
 		scoreLabel.setFont(font);
 		scoreLabel.setBounds(320, 100, 100, 10);
@@ -95,42 +110,48 @@ public class GameWindow {
 		submitbutton.setBounds(600, 350, 100, 20);
 		pane.add(submitbutton);
 
-		submitbutton.addActionListener(new ActionListener(){
-			public void actionPerformed(ActionEvent e){
-				if(answerfield.getText().isEmpty())
+		submitbutton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				if (answerfield.getText().isEmpty())
 					return;
-
-				for(int i=0;i<ipArray.length;i++){
-					if(i!=hostNo)
-					    messager.sendMsg("ANSWER " + ipArray[hostNo].hostname  + " " + answerfield.getText(), ipArray[i].hostname, ipArray[i].ip);
+				// TODO multicast
+				for (int i = 0; i < ipArray.length; i++) {
+					if (i != myHostId) {
+						sender_client.unicastMsg(new OtpErlangAtom(MSGTYPE.ANSWER), new OtpPeer(ipArray[i].otpString), ipArray[i].ip,
+								answerfield.getText());
+						// messager.sendMsg(selfNode, new OtpErlangAtom(MSGTYPE.ANSWER), new OtpPeer(ipArray[myHostId].hostname + "@" + ipArray[myHostId].ip), messager.getMyIp(),
+						// ipArray[i].ip);
+						// messager.sendMsg("ANSWER " + ipArray[myHostId].hostname + " " + answerfield.getText(), ipArray[i].hostname, ipArray[i].ip);
+					}
 				}
-				wanswers.setText(wanswers.getText() + ipArray[hostNo].hostname + " " + answerfield.getText() + "\n");
-		   }
-        });
+				wanswers.setText(wanswers.getText() + ipArray[myHostId].hostname + " " + answerfield.getText() + "\n");
+			}
+		});
 
 		/* video layout */
-		for (int i=0;i<MAXVNUM;i++){
+		for (int i = 0; i < MAXVNUM; i++) {
 			videoPanelArray[i] = new VideoPanel();
 			videoPanelArray[i].setPreferredSize(dimension);
 			labelArray[i] = new JLabel(ipArray[i].hostname);
 		}
-		labelArray[0].setBounds(120, 0 , 100, 20);
+		labelArray[0].setBounds(120, 0, 100, 20);
 		videoPanelArray[0].setBounds(0, 20, dimension.width, dimension.height);
-		labelArray[1].setBounds(120, 20 + dimension.height , 100, 20);
+		labelArray[1].setBounds(120, 20 + dimension.height, 100, 20);
 		videoPanelArray[1].setBounds(0, 40 + dimension.height, dimension.width, dimension.height);
-		labelArray[2].setBounds(120, 40 + 2*dimension.height , 100, 20);
-		videoPanelArray[2].setBounds(0, 60 + 2*dimension.height, dimension.width, dimension.height);
+		// TODO auto layout according to num_players
+		// labelArray[2].setBounds(120, 40 + 2*dimension.height , 100, 20);
+		// videoPanelArray[2].setBounds(0, 60 + 2*dimension.height, dimension.width, dimension.height);
 
-		actorLabel.setBounds(10, 0 , 100, 20);
+		actorLabel.setBounds(10, 0, 100, 20);
 		pane.add(actorLabel);
 
-//		videoPanelArray[4].setBounds(3*dimension.width, 0, dimension.width, dimension.height);
-//		videoPanelArray[5].setBounds(3*dimension.width, dimension.height, dimension.width, dimension.height);
-//		videoPanelArray[6].setBounds(3*dimension.width, 2*dimension.height, dimension.width, dimension.height);
-//
-//		videoPanelArray[0].setBounds((int)(1.5*dimension.width), 2*dimension.height, dimension.width, dimension.height);
+		// videoPanelArray[4].setBounds(3*dimension.width, 0, dimension.width, dimension.height);
+		// videoPanelArray[5].setBounds(3*dimension.width, dimension.height, dimension.width, dimension.height);
+		// videoPanelArray[6].setBounds(3*dimension.width, 2*dimension.height, dimension.width, dimension.height);
+		//
+		// videoPanelArray[0].setBounds((int)(1.5*dimension.width), 2*dimension.height, dimension.width, dimension.height);
 
-		for (int i=0;i<MAXVNUM;i++){
+		for (int i = 0; i < MAXVNUM; i++) {
 			pane.add(videoPanelArray[i]);
 			pane.add(labelArray[i]);
 		}
@@ -144,24 +165,24 @@ public class GameWindow {
 		this.window.setVisible(visible);
 	}
 
-	public void changeActor(int i, int height){
-		switch(i){
-		case 0:
-			actorLabel.setBounds(10, 0 , 100, 20);
-			break;
-		case 1:
-			actorLabel.setBounds(10, 20 + height , 100, 20);
-			break;
-		case 2:
-			actorLabel.setBounds(10, 40 + 2*height , 100, 20);
-			break;
+	public void changeActor(int i, int height) {
+		switch (i) {
+			case 0:
+				actorLabel.setBounds(10, 0, 100, 20);
+				break;
+			case 1:
+				actorLabel.setBounds(10, 20 + height, 100, 20);
+				break;
+			case 2:
+				actorLabel.setBounds(10, 40 + 2 * height, 100, 20);
+				break;
 		}
 	}
 
-	public void close(){
+	public void close() {
 		window.dispose();
-		for(int i=0;i<MAXVNUM;i++){
-			videoPanelArray[i].close();			
+		for (int i = 0; i < MAXVNUM; i++) {
+			videoPanelArray[i].close();
 		}
 	}
 }
