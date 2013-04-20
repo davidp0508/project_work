@@ -126,8 +126,8 @@ public class TestApp {
 
 		System.out.println("Choose genre: 1 -> Movies, 2 -> Words");
 		Scanner in = new Scanner(System.in);
-		int choice = in.nextInt();
-
+		//int choice = in.nextInt();
+		String choice = in.next();
 		Card card = wl.getCard(playerId, roomId, choice);
 		
 		System.out.println("1 Level:Easy  - "+card.getEasy());
