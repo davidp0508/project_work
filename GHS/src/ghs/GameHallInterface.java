@@ -3,8 +3,6 @@ package ghs;
 import messaging.*;
 
 import java.util.ArrayList;
-import java.util.Scanner;
-
 import com.ericsson.otp.erlang.OtpErlangAtom;
 import com.ericsson.otp.erlang.OtpPeer;
 
@@ -16,7 +14,7 @@ import databean.Player;
 
 public class GameHallInterface {
 
-	private final static String				myIp			= "128.237.118.211";
+	private final static String				myIp			= "128.237.229.87";
 	private final static ArrayList<Message>	receivedMsgs	= new ArrayList<Message>();
 	private static Messager					sender_client;
 
@@ -52,12 +50,12 @@ public class GameHallInterface {
 
 			System.out.println(rec.type + "#");
 
-			if(rec.type.equals("SHOW_ROOMS")){
+			if(rec.type.equals(MSGTYPE.SHOW_ROOMS)){
 
 				String responseContent = new String();
 				//db transaction
 				ArrayList<GameRoom> availableRooms = gh.showRooms();
-				
+
 				if(!(availableRooms.isEmpty())){
 					for(GameRoom g: availableRooms){
 						/*
@@ -75,7 +73,7 @@ public class GameHallInterface {
 			}
 
 
-			if(rec.type.equals("CREATE_NEWROOM")){
+			if(rec.type.equals(MSGTYPE.CREATE_NEWROOM)){
 
 				// Parse content field of message to retrieve (gameRoomName, playerName, ip, port)
 				String[] incomingArgs = rec.type.split(" ");
@@ -88,15 +86,16 @@ public class GameHallInterface {
 				// database transaction - create player and room
 				MsgObj newObj = gh.createNewRoom(gameRoomName, playerName, ip, port);
 
-				// return player Id and Room Id
-				String responseContent = new String(newObj.getPlayerId()+" "+newObj.getRoomId());
+				// return player Id, client No and Room Id
+				String responseContent = new String(newObj.getPlayerId()+" "+newObj.getClientNo()+
+						" "+newObj.getRoomId());
 
-				sender_client.unicastMsg(new OtpErlangAtom(MSGTYPE.SHOW_ROOMS), 
+				sender_client.unicastMsg(new OtpErlangAtom(MSGTYPE.CREATE_NEWROOM), 
 						new OtpPeer(rec.name+"@"+rec.ip), rec.ip, responseContent);
 
 			}
 
-			if(rec.type.equals("JOIN_ROOM")){
+			if(rec.type.equals(MSGTYPE.JOIN_ROOM)){
 
 				// Parse content field of message to retrieve (roomId, playerName, ip, port)
 				String[] incomingArgs = rec.type.split(" ");
@@ -108,41 +107,56 @@ public class GameHallInterface {
 
 				//database transaction
 				MsgObj newObj = gh.joinRoom(Integer.parseInt(roomId), playerName, ip, port);
-				
+
 				//return player Id and info of all players in room
-				String responseContent = new String(newObj.getPlayerId()+" ");
+				String responseContent = new String(newObj.getPlayerId()+" "+newObj.getClientNo()+" ");
 
 				for(Player p: newObj.getAllPlayers()){
-					responseContent += p.getPlayerName()+","+p.getIp()+","+p.getPort()+" ";
+					responseContent += p.getPlayerName()+","+p.getIp()+","+p.getPort()+","+p.getClientNo()+" ";
 				}
-				sender_client.unicastMsg(new OtpErlangAtom(MSGTYPE.SHOW_ROOMS), 
+				sender_client.unicastMsg(new OtpErlangAtom(MSGTYPE.JOIN_ROOM), 
 						new OtpPeer(rec.name+"@"+rec.ip), rec.ip, responseContent);
 
 			}
-			
-			if(rec.type.equals("GET_CARD")){
+
+			if(rec.type.equals(MSGTYPE.GET_CARD)){
 
 				// Parse content field of message to retrieve (playerId, roomId, genre)
 				String[] incomingArgs = rec.type.split(" ");
 				int playerId = Integer.parseInt(incomingArgs[0]);
 				int roomId = Integer.parseInt(incomingArgs[1]);
 				String genre = incomingArgs[2];
-				
+
 				//db transaction
 				Card card = wl.getCard(playerId, roomId, genre);
-				
+
 				//return words belonging to the 3 difficulty levels
 				String responseContent = new String(card.getEasy()+" "+card.getMedium()+" "+card.getHard());
-				
-				sender_client.unicastMsg(new OtpErlangAtom(MSGTYPE.SHOW_ROOMS), 
+
+				sender_client.unicastMsg(new OtpErlangAtom(MSGTYPE.GET_CARD), 
 						new OtpPeer(rec.name+"@"+rec.ip), rec.ip, responseContent);			
 			}
-			
-			if(rec.type.equals("LEAVE")){
+
+			if(rec.type.equals(MSGTYPE.LEAVE)){
 				/*
 				 * To do: see TestApp
 				 * 		 also, handle sudden abort
 				 */
+				String[] incomingArgs = rec.type.split(" ");
+				int playerId = Integer.parseInt(incomingArgs[0]);
+				int  clientNo = Integer.parseInt(incomingArgs[1]);
+				int roomId = Integer.parseInt(incomingArgs[2]);
+				
+				boolean res = gh.leaveRoom(playerId, roomId, clientNo);
+				
+				String responseContent = "";
+				if(res){
+					responseContent = new String("Success");
+				}else{
+					responseContent = new String("Leave failed");
+				}
+				sender_client.unicastMsg(new OtpErlangAtom(MSGTYPE.LEAVE), 
+						new OtpPeer(rec.name+"@"+rec.ip), rec.ip, responseContent);	
 			}
 
 

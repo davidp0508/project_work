@@ -11,6 +11,8 @@ public class Player {
 	String port;
 	
 	int gameRoomId;
+	
+	int clientNo;
 
 	public int getPlayerId() {
 		return playerId;
@@ -51,6 +53,16 @@ public class Player {
 	public void setGameRoomId(int gameRoomId) {
 		this.gameRoomId = gameRoomId;
 	}
+
+	public int getClientNo() {
+		return clientNo;
+	}
+
+	public void setClientNo(int clientNo) {
+		this.clientNo = clientNo;
+	}
+	
+	
 	
 	
 }

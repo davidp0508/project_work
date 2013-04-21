@@ -9,6 +9,8 @@ public class GameRoom {
 	String creatorName;
 	
 	int noPlayers;
+	
+	String availableSlots;
 
 	public int getRoomId() {
 		return roomId;
@@ -42,5 +44,12 @@ public class GameRoom {
 		this.noPlayers = noPlayers;
 	}
 
+	public String getAvailableSlots() {
+		return availableSlots;
+	}
+
+	public void setAvailableSlots(String availableSlots) {
+		this.availableSlots = availableSlots;
+	}
 	
 }
