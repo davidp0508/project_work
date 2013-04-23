@@ -11,11 +11,14 @@ import javax.swing.JOptionPane;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.ericsson.otp.erlang.OtpErlangAtom;
+
 import us.sosia.video.stream.agent.messaging.Listener;
+import us.sosia.video.stream.agent.messaging.MSGTYPE;
 import us.sosia.video.stream.agent.messaging.Message;
 import us.sosia.video.stream.agent.messaging.MessageFactory;
 import us.sosia.video.stream.agent.messaging.Messager;
-import us.sosia.video.stream.agent.messaging.NameIpPort;
+import us.sosia.video.stream.agent.messaging.User;
 import us.sosia.video.stream.agent.ui.GameWindow;
 import us.sosia.video.stream.agent.ui.VideoPanel;
 import us.sosia.video.stream.common.CharadesConfig;
@@ -24,12 +27,12 @@ import us.sosia.video.stream.handler.StreamFrameListener;
 public class StreamClient {
 
 	// currently I tested all the client in my own machine
-	private final static String				testip			= "128.237.118.211";
+	private final static String				testip			= CharadesConfig.TEST_IP;
 	//game constants
 	private final static int num_players = CharadesConfig.NUM_PLAYERS;
 	private final static int round_time = CharadesConfig.MAXSEC;
-	// contains all the IP, Name and port number of all players
-	private static NameIpPort[]				ipArray			= new NameIpPort[num_players];
+	// TODO contains all the IP, Name and port number of all players
+	private static User[]				userList = new User[num_players];
 
 	// video window size
 	private final static Dimension			dimension		= new Dimension(320, 240);
@@ -61,18 +64,20 @@ public class StreamClient {
 		int winner;
 
 		// build a messager to send msgs to other
-		sender_client = MessageFactory.getMessager("client", CharadesConfig.SENDER_PREFIX + args[0] + "@" + testip, "test");
+		sender_client = MessageFactory.getMessager("client", CharadesConfig.SENDER_PREFIX + args[0] + "@" + testip, CharadesConfig.COOKIE);
 		System.out.println("StreamClient>>>"+sender_client);
 
 		playerId = Integer.parseInt(args[0]);
 
-		// three test case
-		ipArray[0] = new NameIpPort(CharadesConfig.myName, testip, 20000);
-		ipArray[1] = new NameIpPort(CharadesConfig.yourName, testip, 20001);//TODO get from GHS
-		// ipArray[2] = new NameIpPort("hyang", testip, 20002);
+		// three test case TODO get from GHS
+		userList[0] = new User(CharadesConfig.myName, testip, 20000);
+		userList[1] = new User(CharadesConfig.yourName, testip, 20001);//TODO get from GHS
+//		userList[2] = new User("hyang", testip, 20002);
 
+		//user list...
+		
 		try {
-			displayWindow = new GameWindow(dimension, testip, playerId, ipArray);
+			displayWindow = new GameWindow(dimension, testip, playerId, userList);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -82,18 +87,19 @@ public class StreamClient {
 		// scores[2] = 0;
 
 		// setup the videoWindow
-		displayWindow.ipArray = ipArray;
+		displayWindow.ipArray = userList;
 		displayWindow.myHostId = playerId;
 		displayWindow.setVisible(true);
 		displayWindow.scorecard.setText(getScoreStr());
 
 		// setup the connection
-		logger.info("setup dimension :{}", dimension);
+//		logger.info("setup dimension :{}", dimension);
 
 		// make every video window connected
-		for (int i = 0; i < ipArray.length; i++) {
+		for (int i = 0; i < userList.length; i++) {
 			StreamClientAgent clientAgent = new StreamClientAgent(new StreamFrameListenerIMPL(displayWindow.videoPanelArray[i]), dimension);
-			clientAgent.connect(new InetSocketAddress(ipArray[i].ip, 20000));
+			logger.info(userList[i].hostname + " connecting video server");
+			clientAgent.connect(new InetSocketAddress(userList[i].ip, CharadesConfig.VIDEO_PORT));
 		}
 
 		// timer start
@@ -106,7 +112,7 @@ public class StreamClient {
 		displayWindow.submitbutton.setEnabled(true);
 		if (playerId == 0) {
 			//TODO move such messages into config
-			int option = JOptionPane.showConfirmDialog(null, ipArray[playerId].hostname + " Do you want to be the actor?", "Confirm",
+			int option = JOptionPane.showConfirmDialog(null, userList[playerId].hostname + " Do you want to be the actor?", "Confirm",
 					JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
 
 			if (option == 0) {
@@ -117,8 +123,8 @@ public class StreamClient {
 		}
 
 		// listener thread start
-		logger.info("start listener of " + ipArray[playerId].hostname);
-		Listener myServer = new Listener(ipArray[playerId].hostname, testip, receivedMsgs, ipArray);
+		logger.info("start listener of " + userList[playerId].hostname);
+		Listener myServer = new Listener(userList[playerId].hostname, testip, receivedMsgs, userList);
 		Thread threadServer = new Thread(myServer);
 		threadServer.start();
 
@@ -170,7 +176,7 @@ public class StreamClient {
 						scores[winner]++;
 						String str_scores = getScoreStr();
 						displayWindow.scorecard.setText(str_scores);
-						sender_client.multicast(playerId, "SCOREUPDATE " + compressScores(), ipArray);
+						sender_client.multicast(playerId, "SCOREUPDATE " + compressScores(), userList);
 
 						change2GUESSING();
 						continue;
@@ -202,7 +208,7 @@ public class StreamClient {
 			// pass the token to next player
 			if (rec.type.equals("TOKEN")) {
 				// user can choose whether they want to be an actor
-				int option = JOptionPane.showConfirmDialog(null, ipArray[playerId].hostname + " Do you want to be the actor?", "Confirm",
+				int option = JOptionPane.showConfirmDialog(null, userList[playerId].hostname + " Do you want to be the actor?", "Confirm",
 						JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
 				if (option == 0) {
 					change2ACTING();
@@ -216,16 +222,17 @@ public class StreamClient {
 	private static void change2ACTING() {
 		state = CharadesConfig.ACTING;
 		displayWindow.submitbutton.setEnabled(false);
-		sender_client.multicast(playerId, "BEGIN ", ipArray);// TODO change to real multicast
+//		sender_client.multicastMsg(new OtpErlangAtom(MSGTYPE.BEGIN), userList, null);
+		sender_client.multicast(playerId, "BEGIN ", userList);// TODO change to real multicast
 		stop = false;
 	}
 
 	private static void change2GUESSING() {
 		state = CharadesConfig.GUESSING;
 		displayWindow.submitbutton.setEnabled(true);
-		sender_client.multicast(playerId, "ROUND_FINISHED " + " ", ipArray);
+		sender_client.multicast(playerId, "ROUND_FINISHED " + " ", userList);
 		displayWindow.changeActor((++actorId) % 3, dimension.height);
-		sender_client.sendMsg("TOKEN " + " ", ipArray[(playerId + 1) % num_players].hostname, ipArray[(playerId + 1) % num_players].ip);
+		sender_client.sendMsg("TOKEN " + " ", userList[(playerId + 1) % num_players].hostname, userList[(playerId + 1) % num_players].ip);
 		currentsec = round_time;
 		stop = true;
 
@@ -278,8 +285,8 @@ public class StreamClient {
 	}
 
 	private static int getIndexFromName(String name) {
-		for (int i = 0; i < ipArray.length; i++)
-			if (ipArray[i].hostname.equals(name))
+		for (int i = 0; i < userList.length; i++)
+			if (userList[i].hostname.equals(name))
 				return i;
 		return -1;
 	}
@@ -287,7 +294,7 @@ public class StreamClient {
 	private static String getScoreStr() {
 		String str_scores = "";
 		for (int i = 0; i < scores.length; i++) {
-			str_scores += ipArray[i].hostname + " " + scores[i].toString() + "\n";
+			str_scores += userList[i].hostname + " " + scores[i].toString() + "\n";
 		}
 		return str_scores;
 	}

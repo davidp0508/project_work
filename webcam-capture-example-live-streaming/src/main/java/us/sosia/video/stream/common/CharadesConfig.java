@@ -1,6 +1,8 @@
 package us.sosia.video.stream.common;
 
 public final class CharadesConfig {
+	public static final String TEST_IP = "192.168.0.114";//TODO just for test
+	public static final int VIDEO_PORT = 20000;
 	/** application high-level and UI paras */
 	public static final String	APP_NAME		= "Act Something ";
 	public final static String myName = "dmei";//TODO configured via GHS

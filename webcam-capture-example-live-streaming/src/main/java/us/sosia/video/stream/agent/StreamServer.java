@@ -3,6 +3,8 @@ package us.sosia.video.stream.agent;
 import java.awt.Dimension;
 import java.net.InetSocketAddress;
 
+import us.sosia.video.stream.common.CharadesConfig;
+
 import com.github.sarxos.webcam.Webcam;
 
 public class StreamServer {
@@ -17,7 +19,7 @@ public class StreamServer {
 		webcam.setViewSize(dimension);
 		
 		StreamServerAgent serverAgent = new StreamServerAgent(webcam, dimension);
-		serverAgent.start(new InetSocketAddress("192.168.0.9", 20000));
+		serverAgent.start(new InetSocketAddress(CharadesConfig.TEST_IP, CharadesConfig.VIDEO_PORT));
 	}
 
 }

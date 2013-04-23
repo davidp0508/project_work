@@ -9,10 +9,10 @@ public class Listener implements Runnable {
 
 	private String selfName;
 	private String ip;
-	private NameIpPort[] ipArray;
+	private User[] ipArray;
 	private ArrayList<Message> receivedMsgs;
 
-	public Listener(String selfName, String ip, ArrayList<Message> receivedMsgs, NameIpPort[] ipArray){
+	public Listener(String selfName, String ip, ArrayList<Message> receivedMsgs, User[] ipArray){
 		this.selfName = selfName;
 		this.ip = ip;
 		this.ipArray = ipArray;
@@ -58,7 +58,7 @@ public class Listener implements Runnable {
             
             String srcName = "";
             
-            //TODO
+            //TODO msg format changed. eg: received {{client,dmei,'ANSWER','wtf...!!'},'sender_server1@192.168.0.114'}
             String type = content.substring(0, content.indexOf(' '));
             content = content.substring(content.indexOf(' ')+1);
             for (int i=0;i<ipArray.length;i++)

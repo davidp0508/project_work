@@ -21,7 +21,6 @@ public class SenderServer implements Runnable {
 		String myIP = ip.getIPaddress();
 		OtpNode node = null;
 		
-		System.out.println(System.getProperty("user.dir"));
 		/* The code below gets the sender_server to run from Java. */
 		String dir = "src/"; //where you have your beam file stored in relation to where this code is run
 		//String erlName = "$(which erl)"; //doesn't work correctly in this setup, but would be more portable
@@ -32,9 +31,9 @@ public class SenderServer implements Runnable {
 		String cookie = "test"; //may change based on what we plan to do (needs to be changed elsewhere in this Project if so)
 		String module = " -s message_passing"; //name of Erlang module
 		String function = " start "; //name of function to call
-
+		//TODO problem here
 		String cmd = "cd src/main/java/us/sosia/video/stream/agent/messaging ; "+erlName+options+server+cookiePrefix+cookie+module+function+serverName; //TODO concat playerid
-		System.out.println("Command is "+cmd+"\n");
+//		System.out.println("Command is "+cmd+"\n");
 		// build the system command we want to run
 	    List<String> commands = new ArrayList<String>();
 	    commands.add("/bin/bash");
@@ -46,6 +45,7 @@ public class SenderServer implements Runnable {
 	    int result=0;
 		try {
 			result = commandExecutor.executeCommand();
+			System.out.println("exe cmd " + cmd);
 		} catch (IOException e1) {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();
@@ -64,6 +64,5 @@ public class SenderServer implements Runnable {
 	    System.out.println(stdout);
 	    System.out.println("STDERR:");
 	    System.out.println(stderr);
-	    
 	}
 }
