@@ -222,17 +222,19 @@ public class StreamClient {
 	private static void change2ACTING() {
 		state = CharadesConfig.ACTING;
 		displayWindow.submitbutton.setEnabled(false);
-//		sender_client.multicastMsg(new OtpErlangAtom(MSGTYPE.BEGIN), userList, null);
-		sender_client.multicast(playerId, "BEGIN ", userList);// TODO change to real multicast
+		sender_client.multicastMsg(new OtpErlangAtom(MSGTYPE.BEGIN), userList, null);
+//		sender_client.multicast(playerId, "BEGIN ", userList);
 		stop = false;
 	}
 
 	private static void change2GUESSING() {
 		state = CharadesConfig.GUESSING;
 		displayWindow.submitbutton.setEnabled(true);
-		sender_client.multicast(playerId, "ROUND_FINISHED " + " ", userList);
+		sender_client.multicast(playerId, "ROUND_FINISHED " + " ", userList);//TODO
 		displayWindow.changeActor((++actorId) % 3, dimension.height);
-		sender_client.sendMsg("TOKEN " + " ", userList[(playerId + 1) % num_players].hostname, userList[(playerId + 1) % num_players].ip);
+		User next = userList[(playerId + 1) % num_players];
+		sender_client.unicastMsg(new OtpErlangAtom(MSGTYPE.TOKEN), next.otpString, next.ip, null);
+//		sender_client.sendMsg("TOKEN " + " ", userList[(playerId + 1) % num_players].hostname, userList[(playerId + 1) % num_players].ip);
 		currentsec = round_time;
 		stop = true;
 

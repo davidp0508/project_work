@@ -3,8 +3,6 @@ package us.sosia.video.stream.agent.messaging;
 import java.io.IOException;
 import java.net.UnknownHostException;
 
-import us.sosia.video.stream.common.Player;
-
 import com.ericsson.otp.erlang.OtpAuthException;
 import com.ericsson.otp.erlang.OtpConnection;
 import com.ericsson.otp.erlang.OtpErlangAtom;
@@ -37,7 +35,7 @@ public class Messager {
 	/**
 	 * 
 	 * @param selfName
-	 *            - eg.dmei, david
+	 *            - eg.client..
 	 * @param senderServerName
 	 *            - eg. sender_server0@128.237.231.0
 	 * @param cookie
@@ -67,6 +65,7 @@ public class Messager {
 		 * Sets up local server services on each node. The sender_server takes Java to Erlang sendRPC calls and integrates with the Erlang lower layer to perform message passing.
 		 * The receiver_server receives all messages from other nodes and allows for Java-level processing.
 		 */
+		//TODO command line not work
 		// SenderServer mySender = new SenderServer(serverName);
 		// Thread threadSendServer = new Thread(mySender);
 		// threadSendServer.start();
@@ -98,7 +97,7 @@ public class Messager {
 			} catch (OtpAuthException e) {
 				e.printStackTrace();
 			} catch (IOException e) {
-				// e.printStackTrace();
+				System.out.println(e.getMessage());
 			}
 		}
 	}
@@ -161,15 +160,8 @@ public class Messager {
 		
 //		String[][] userList = new String[3][2]; // contains the raw list of users (get this from node logic later)
 		OtpErlangObject[] user = new OtpErlangObject[2]; // contains the pieces of a user (username, IP)
-		OtpErlangObject[] user_list = new OtpErlangTuple[3]; // user list as an Erlang object
+		OtpErlangObject[] user_list = new OtpErlangTuple[dsts.length]; // user list as an Erlang object
 		OtpErlangTuple temp = null;
-		// TODO the hard-coded chunk below should be replaced by node logic to get userList
-//		userList[0][0] = "david";
-//		userList[0][1] = myIp;// "192.168.1.48";
-//		userList[1][0] = "shifa";
-//		userList[1][1] = dstIP;// "192.168.1.48";
-//		userList[2][0] = "dan";
-//		userList[2][1] = myIp;// "192.168.1.48";
 		// Erlang's list of tuples looks like this: [{david, '192.168.1.44'}, {joe, '192.168.1.44'}, {local_server, '192.168.1.44'}]
 
 		for (int i = 0; i < dsts.length; i++) {
@@ -194,12 +186,8 @@ public class Messager {
 		OtpErlangObject response = null;
 		
 		try {
-			// System.out.println("Tuple as string before: "+withArgs(tuple).toString()+"\n");
-//			connection.sendRPC("message_passing", "unicastSend", formatArgs(tuple));
-			// System.out.println("Testing multicast...\n");
 			 connection.sendRPC("message_passing", "multicastSend", formatArgs(mcTuple));
 		} catch (IOException e1) {
-			// TODO Auto-generated catch block
 			e1.printStackTrace();
 		}
 		try {
