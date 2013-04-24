@@ -75,8 +75,10 @@ public class GameRoomDAO {
 		try {
 			con = getConnection();
 			Statement stmt = con.createStatement();
-			stmt.executeUpdate("CREATE TABLE " + tableName + " (roomId INT NOT NULL AUTO_INCREMENT,roomName VARCHAR(255) NOT NULL,"+
-					" creatorName VARCHAR(255) NOT NULL,noPlayers INT, PRIMARY KEY(roomId))");
+			stmt.executeUpdate("CREATE TABLE " + tableName + 
+					" (roomId INT NOT NULL AUTO_INCREMENT,roomName VARCHAR(255) NOT NULL,"+
+					" creatorName VARCHAR(255) NOT NULL,noPlayers INT,"+
+					" availableSlots VARCHAR(255) NOT NULL,PRIMARY KEY(roomId))");
 			stmt.close();
 
 			releaseConnection(con);
@@ -96,11 +98,12 @@ public class GameRoomDAO {
 
 
 			PreparedStatement pstmt = con.prepareStatement("INSERT INTO " + tableName + 
-					" (roomName, creatorName, noPlayers) VALUES (?,?,?)");
+					" (roomName, creatorName, noPlayers, availableSlots) VALUES (?,?,?,?)");
 
 			pstmt.setString(1,room.getRoomName());
 			pstmt.setString(2,room.getCreatorName());
 			pstmt.setInt(3,room.getNoPlayers());
+			pstmt.setString(4,room.getAvailableSlots());
 
 			int count = pstmt.executeUpdate();
 			if (count != 1) throw new SQLException("Insert updated "+count+" rows");
@@ -146,6 +149,7 @@ public class GameRoomDAO {
 					tempRoom.setRoomName(rs.getString("roomName"));
 					tempRoom.setCreatorName(rs.getString("creatorName"));
 					tempRoom.setNoPlayers(rs.getInt("noPlayers"));
+					tempRoom.setAvailableSlots(rs.getString("availableSlots"));
 					gameRooms.add(tempRoom);
 				}while(rs.next());
 			}
@@ -199,6 +203,63 @@ public class GameRoomDAO {
 			PreparedStatement pstmt = con.prepareStatement("UPDATE "+ tableName +
 					" SET noPlayers = ? WHERE roomId = ?");
 			pstmt.setInt(1, noPlayers);
+			pstmt.setInt(2, roomId);
+		
+			int res = pstmt.executeUpdate();
+			con.commit();
+			con.setAutoCommit(true);
+			pstmt.close();
+			releaseConnection(con);
+
+			return res;
+		}catch(Exception e){
+			try { 
+				if (con != null) 
+					con.close(); 
+			} 
+			catch (SQLException e2) { /* ignore */ }
+			throw new MyDAOException(e);
+		}		
+	}
+	
+	public String getSlots(int roomId) throws MyDAOException{
+
+		Connection con = null;
+		try{
+			con = getConnection();
+
+			PreparedStatement pstmt = con.prepareStatement("SELECT availableSlots from "+ tableName +
+					" WHERE roomId = ?");
+			pstmt.setInt(1, roomId);
+			ResultSet rs = pstmt.executeQuery();
+
+			String availableSlots;
+			if (!rs.next()) {
+				availableSlots = "";
+			} else {
+				availableSlots = rs.getString("availableSlots");
+			}
+
+			rs.close();
+			pstmt.close();
+			releaseConnection(con);
+			return availableSlots;
+		}catch(Exception e){
+			try { if (con != null) con.close(); } catch (SQLException e2) { /* ignore */ }
+			throw new MyDAOException(e);
+		}		
+	}
+
+	public int updateSlots(String availableSlots, int roomId) throws MyDAOException{
+
+		Connection con = null;
+		try{
+			con = getConnection();
+			con.setAutoCommit(false);
+			
+			PreparedStatement pstmt = con.prepareStatement("UPDATE "+ tableName +
+					" SET availableSlots = ? WHERE roomId = ?");
+			pstmt.setString(1, availableSlots);
 			pstmt.setInt(2, roomId);
 		
 			int res = pstmt.executeUpdate();

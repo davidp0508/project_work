@@ -75,8 +75,10 @@ public class PlayerDAO {
 		try {
 			con = getConnection();
 			Statement stmt = con.createStatement();
-			stmt.executeUpdate("CREATE TABLE " + tableName + " (playerId INT NOT NULL AUTO_INCREMENT,playerName VARCHAR(255) NOT NULL,"+
-					" ip VARCHAR(255) NOT NULL,port VARCHAR(255) NOT NULL,gameRoomId VARCHAR(255) NOT NULL, PRIMARY KEY(playerId))");
+			stmt.executeUpdate("CREATE TABLE " + tableName +
+					" (playerId INT NOT NULL AUTO_INCREMENT,playerName VARCHAR(255) NOT NULL,"+
+					" ip VARCHAR(255) NOT NULL,port VARCHAR(255) NOT NULL,gameRoomId VARCHAR(255) NOT NULL,"+
+					" clientNo INT NOT NULL, PRIMARY KEY(playerId))");
 			stmt.close();
 
 			releaseConnection(con);
@@ -96,12 +98,13 @@ public class PlayerDAO {
 
 
 			PreparedStatement pstmt = con.prepareStatement("INSERT INTO " + tableName + 
-					" (playerName,ip,port,gameRoomId) VALUES (?,?,?,?)");
+					" (playerName,ip,port,gameRoomId,clientNo) VALUES (?,?,?,?,?)");
 
 			pstmt.setString(1,player.getPlayerName());
 			pstmt.setString(2,player.getIp());
 			pstmt.setString(3,player.getPort());
 			pstmt.setInt(4,player.getGameRoomId());
+			pstmt.setInt(5,player.getClientNo());
 
 			int count = pstmt.executeUpdate();
 			if (count != 1) throw new SQLException("Insert updated "+count+" rows");
@@ -129,7 +132,7 @@ public class PlayerDAO {
 	}
 
 	public ArrayList<Player> showPlayers(int gameRoomId) throws MyDAOException{
-		
+
 		Connection con = null;
 		try {
 			con = getConnection();
@@ -148,6 +151,7 @@ public class PlayerDAO {
 					tempPlayer.setPlayerName(rs.getString("playerName"));
 					tempPlayer.setIp(rs.getString("ip"));
 					tempPlayer.setPort(rs.getString("port"));
+					tempPlayer.setClientNo(rs.getInt("clientNo"));
 					players.add(tempPlayer);
 				}while(rs.next());
 			}
@@ -162,18 +166,18 @@ public class PlayerDAO {
 			throw new MyDAOException(e);
 		}	
 	}
-	
+
 	public int deletePlayer(int playerId) throws MyDAOException{
 
 		Connection con = null;
 		try{
 			con = getConnection();
 			con.setAutoCommit(false);
-			
+
 			PreparedStatement pstmt = con.prepareStatement("DELETE FROM "+ tableName +
 					" WHERE playerId = ?");
 			pstmt.setInt(1, playerId);
-	
+
 			int res = pstmt.executeUpdate();
 			con.commit();
 			con.setAutoCommit(true);

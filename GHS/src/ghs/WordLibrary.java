@@ -47,21 +47,21 @@ public class WordLibrary {
 		}
 	}
 
-	public Card getCard(int playerId, int roomId, int choice) throws MyDAOException{
+	public Card getCard(int playerId, int roomId, String tableName) throws MyDAOException{
 		Card card = new Card();
 
 		ArrayList<Integer> givenCardIds = givenCards.get(roomId);
 
-		String tableName = "";
-
-		switch(choice){
-		case 1: 		
-			tableName = "Movies";
-			break;
-		case 2: 
-			tableName = "Words";
-			break;
-		}
+//		String tableName = "";
+//
+//		switch(choice){
+//		case 1: 		
+//			tableName = "Movies";
+//			break;
+//		case 2: 
+//			tableName = "Words";
+//			break;
+//		}
 
 		if(givenCardIds == null){
 			givenCardIds = new ArrayList<Integer>();

@@ -42,6 +42,8 @@ public class TestApp {
 		System.out.println("Enter :  1. Show existing rooms, 2. Create New Room 3. Join Existing 4. Exit");
 		Scanner in = new Scanner(System.in);
 
+		//gh.leaveRoom(3, 1, 3);
+		
 		int choice = in.nextInt();
 		switch(choice){
 
@@ -50,7 +52,8 @@ public class TestApp {
 			if(!(availableRooms.isEmpty())){
 				for(GameRoom g: availableRooms){
 					System.out.println("Room ID:"+g.getRoomId()+"  Room Name:"+g.getRoomName()+
-							"  Creator Name: "+g.getCreatorName()+"  No. of Players: "+g.getNoPlayers());
+							"  Creator Name: "+g.getCreatorName()+"  No. of Players: "+g.getNoPlayers()
+							+"  Available Slots: "+g.getAvailableSlots());
 				}
 			}else{
 				System.out.println("No Rooms");
@@ -70,9 +73,10 @@ public class TestApp {
 			MsgObj newObj = gh.createNewRoom(gameRoomName, playerName, ip, port);
 			System.out.println("Your player ID is: "+newObj.getPlayerId());
 			System.out.println("Your Game Room ID is: "+newObj.getRoomId());
+			System.out.println("Your ClientNo is: "+newObj.getClientNo());
 			System.out.println("____________________________________");
 
-			playGame(newObj.getPlayerId(),newObj.getRoomId());
+			playGame(newObj.getPlayerId(),newObj.getRoomId(),newObj.getClientNo());
 			break;
 
 		case 3: 
@@ -86,16 +90,17 @@ public class TestApp {
 			port = in.next();
 			newObj = gh.joinRoom(roomId, playerName, ip, port);
 			System.out.println("Your player ID is: "+newObj.getPlayerId());
+			System.out.println("Your Client No is: "+newObj.getClientNo());
 			System.out.println("\nOther Player details :");
 
 			for(Player p: newObj.getAllPlayers()){
-				System.out.println(p.getPlayerName()+" "+p.getIp()+" "+p.getPort());
+				System.out.println(p.getPlayerName()+" "+p.getIp()+" "+p.getPort()+" "+p.getClientNo());
 			}
 			System.out.println("____________________________________");
 
-			while(true){
-				playGame(newObj.getPlayerId(),roomId);
-			}		
+			//while(true){
+				playGame(newObj.getPlayerId(),roomId,newObj.getClientNo());
+			//}		
 			//break;
 
 		case 4: return 0;
@@ -105,7 +110,7 @@ public class TestApp {
 		return 1;
 	}
 
-	public static void playGame(int playerId, int roomId) throws MyDAOException{
+	public static void playGame(int playerId, int roomId, int clientNo) throws MyDAOException{
 		
 		System.out.println("Enter :  1. Start Game, 2. Leave GameRoom ");
 		Scanner in = new Scanner(System.in);
@@ -117,8 +122,9 @@ public class TestApp {
 		case 1: chooseCard(playerId, roomId);
 			break;
 		case 2:
-			gh.leaveRoom(playerId, roomId);
+			gh.leaveRoom(playerId, roomId, clientNo);
 			break;
+		default : return;
 		}
 	}
 
@@ -126,8 +132,8 @@ public class TestApp {
 
 		System.out.println("Choose genre: 1 -> Movies, 2 -> Words");
 		Scanner in = new Scanner(System.in);
-		int choice = in.nextInt();
-
+		//int choice = in.nextInt();
+		String choice = in.next();
 		Card card = wl.getCard(playerId, roomId, choice);
 		
 		System.out.println("1 Level:Easy  - "+card.getEasy());

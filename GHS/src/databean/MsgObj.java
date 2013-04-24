@@ -6,6 +6,8 @@ public class MsgObj {
 
 	int playerId;
 	
+	int clientNo;
+	
 	int roomId;
 	
 	ArrayList<Player> allPlayers;
@@ -32,6 +34,14 @@ public class MsgObj {
 
 	public void setAllPlayers(ArrayList<Player> allPlayers) {
 		this.allPlayers = allPlayers;
+	}
+
+	public int getClientNo() {
+		return clientNo;
+	}
+
+	public void setClientNo(int clientNo) {
+		this.clientNo = clientNo;
 	}
 	
 	
