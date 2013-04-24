@@ -2,6 +2,8 @@ package us.sosia.video.stream.agent.messaging;
 
 import java.io.Serializable;
 
+import us.sosia.video.stream.common.CharadesConfig;
+
 /**
  * Wrap message passed by Erlang layer and deliver to client (GameWindow)
  * 
@@ -14,17 +16,27 @@ public class Message implements Serializable, Cloneable {
 	 */
 	private static final long	serialVersionUID	= 1L;
 
-	private String				srcName;
+	private int					srcId;//the playerId
+	private String				srcName;//TODO this needs a map (from GHS)..
 	private String				srcIp;
 	private MSGTYPE				type;
 	private String				payload;
 
 	public Message(String srcNode, MSGTYPE type, String payload) {
 		int idx = srcNode.indexOf("@");
-		this.srcName = srcNode.substring(0, idx);
+		this.srcId = Integer.parseInt(srcNode.substring(srcNode.indexOf(CharadesConfig.SENDER_PREFIX) + 1, idx));
+//		this.srcName = srcNode.substring(0, idx);
 		this.srcIp = srcNode.substring(idx + 1);
 		this.type = type;
 		this.payload = payload;
+	}
+
+	public int getSrcId() {
+		return srcId;
+	}
+
+	public void setSrcId(int srcId) {
+		this.srcId = srcId;
 	}
 
 	public String getSrcName() {
@@ -61,6 +73,6 @@ public class Message implements Serializable, Cloneable {
 
 	@Override
 	public String toString() {
-		return srcName + " " + type + " " + payload;
+		return srcId + " " + type + " " + payload;
 	}
 }

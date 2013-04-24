@@ -18,21 +18,21 @@ import us.sosia.video.stream.agent.messaging.MSGTYPE;
 import us.sosia.video.stream.agent.messaging.Message;
 import us.sosia.video.stream.agent.messaging.MessageFactory;
 import us.sosia.video.stream.agent.messaging.Messager;
-import us.sosia.video.stream.agent.messaging.User;
 import us.sosia.video.stream.agent.ui.GameWindow;
 import us.sosia.video.stream.agent.ui.VideoPanel;
 import us.sosia.video.stream.common.CharadesConfig;
+import us.sosia.video.stream.common.User;
 import us.sosia.video.stream.handler.StreamFrameListener;
 
 public class StreamClient {
 
 	// currently I tested all the client in my own machine
 	private final static String				testip			= CharadesConfig.TEST_IP;
-	//game constants
-	private final static int num_players = CharadesConfig.NUM_PLAYERS;
-	private final static int round_time = CharadesConfig.MAXSEC;
+	// game constants
+	private final static int				num_players		= CharadesConfig.NUM_PLAYERS;
+	private final static int				round_time		= CharadesConfig.MAXSEC;
 	// TODO contains all the IP, Name and port number of all players
-	private static User[]				userList = new User[num_players];
+	private static User[]					userList		= new User[num_players];
 
 	// video window size
 	private final static Dimension			dimension		= new Dimension(320, 240);
@@ -43,7 +43,7 @@ public class StreamClient {
 	// Just like what we did in lab. Listener thread receive msgs and deliver them to the arraylist
 	// another thread loop and read these msgs
 	private final static ArrayList<Message>	receivedMsgs	= new ArrayList<Message>();
-	private final static String				correct_answer	= "initial_demo";//TODO fetch from GHS?
+	private final static String				correct_answer	= "initial_demo";								// TODO fetch from GHS?
 
 	// TBD: score algorithm here
 	private static Integer[]				scores			= new Integer[num_players];
@@ -65,17 +65,16 @@ public class StreamClient {
 
 		// build a messager to send msgs to other
 		sender_client = MessageFactory.getMessager("client", CharadesConfig.SENDER_PREFIX + args[0] + "@" + testip, CharadesConfig.COOKIE);
-		System.out.println("StreamClient>>>"+sender_client);
 
 		playerId = Integer.parseInt(args[0]);
 
 		// three test case TODO get from GHS
 		userList[0] = new User(CharadesConfig.myName, testip, 20000);
-		userList[1] = new User(CharadesConfig.yourName, testip, 20001);//TODO get from GHS
-//		userList[2] = new User("hyang", testip, 20002);
+		userList[1] = new User(CharadesConfig.yourName, testip, 20001);// TODO get from GHS
+		// userList[2] = new User("hyang", testip, 20002);
 
-		//user list...
-		
+		// user list...
+
 		try {
 			displayWindow = new GameWindow(dimension, testip, playerId, userList);
 		} catch (IOException e) {
@@ -91,9 +90,6 @@ public class StreamClient {
 		displayWindow.myHostId = playerId;
 		displayWindow.setVisible(true);
 		displayWindow.scorecard.setText(getScoreStr());
-
-		// setup the connection
-//		logger.info("setup dimension :{}", dimension);
 
 		// make every video window connected
 		for (int i = 0; i < userList.length; i++) {
@@ -111,7 +107,7 @@ public class StreamClient {
 		state = CharadesConfig.GUESSING;
 		displayWindow.submitbutton.setEnabled(true);
 		if (playerId == 0) {
-			//TODO move such messages into config
+			// TODO move such messages into config
 			int option = JOptionPane.showConfirmDialog(null, userList[playerId].hostname + " Do you want to be the actor?", "Confirm",
 					JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
 
@@ -138,103 +134,151 @@ public class StreamClient {
 
 			// get the new msg out
 			Message rec = receivedMsgs.remove(0);
-			System.out.println(rec.type + "#");
+			System.out.println(rec.getType() + "#");
 
 			// if time out happens
 			synchronized (timeout) {
 				if (timeout == 1) {
-					System.out.println("really timeout!!!!!");//TODO move to config
+					System.out.println("really timeout!!!!!");// TODO move to config
 					if (state == CharadesConfig.ACTING) {
 						change2GUESSING();
 						t.start();
 					}
 				}
 			}
-			
-			//TODO swich case
-			// begin -> start timer
-			if (rec.type.equals("BEGIN")) {
-				stop = false;
-			}
 
-			// round finished -> reset timer
-			if (rec.type.equals("ROUND_FINISHED")) {
-				currentsec = round_time;
-				stop = true;
-			}
+			switch (rec.getType()) {
+				// begin -> start timer
+				case BEGIN:
+					stop = false;
+					break;
+				// round finished -> reset timer
+				case ROUNDFINISHED:// TODO
+					currentsec = round_time;
+					stop = true;
+					break;
+				case ANSWER:
+					String recAnswer = rec.getPayload();
+					// if I am a actor I need to update the score card
+					if (state == CharadesConfig.ACTING) {
+						System.out.println("received " + recAnswer);
+						// if the answer is correct, this round of game ends
+						if (recAnswer.equals(correct_answer)) {
+							String strWinner = rec.getSrcName();
+							winner = getIndexFromName(strWinner);
+							scores[playerId]++;
+							scores[winner]++;
+							String str_scores = getScoreStr();
+							displayWindow.scorecard.setText(str_scores);
+							sender_client.multicast(playerId, "SCOREUPDATE " + compressScores(), userList);
 
-			if (rec.type.equals("ANSWER")) {
-				// if I am a actor I need to update the score card
-				if (state == CharadesConfig.ACTING) {
-					String reved_answer = rec.content.substring(rec.content.indexOf(' ') + 1);
-					System.out.println("received " + reved_answer);
-					// if the answer is correct, this round of game ends
-					if (reved_answer.equals(correct_answer)) {
-						String str_winner = rec.name;
-						winner = getIndexFromName(str_winner);
-						scores[playerId]++;
-						scores[winner]++;
-						String str_scores = getScoreStr();
-						displayWindow.scorecard.setText(str_scores);
-						sender_client.multicast(playerId, "SCOREUPDATE " + compressScores(), userList);
-
-						change2GUESSING();
-						continue;
+							change2GUESSING();
+							continue;
+						}
 					}
-				}
-				String text = displayWindow.wanswers.getText() + rec.content + "\n";
-				displayWindow.wanswers.setText(text);
-			}
+					String text = displayWindow.wanswers.getText() + recAnswer + "\n";
+					displayWindow.wanswers.setText(text);
+					break;
+				// received new scores
+				case SCOREUPDATE:
+					String[] recScores = rec.getPayload().split(" ");
+					for (int i = 0; i < num_players; i++) {
+						scores[i] = Integer.parseInt(recScores[i]);
+					}
+					displayWindow.scorecard.setText(getScoreStr());
+					continue;// TODO ???
+				case TOKEN:
+					// user can choose whether they want to be an actor
+					int option = JOptionPane.showConfirmDialog(null, userList[playerId].hostname + " Do you want to be the actor?", "Confirm",
+							JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
+					if (option == 0) {
+						change2ACTING();
+					} else {
+						change2GUESSING();
+					}
+					break;
+			} //end of switch receive message
+			
+			// if (rec.getType() == MSGTYPE.BEGIN) {
+			// stop = false;
+			// }
+			//
+			// if (rec.getType() == MSGTYPE.ROUNDFINISHED) {
+			// currentsec = round_time;
+			// stop = true;
+			// }
 
-			// received new scores
-			if (rec.type.equals("SCOREUPDATE")) {
-				String[] rec_scores = rec.content.split(" ");
-				for (int i = 0; i < num_players; i++) {
-					scores[i] = Integer.parseInt(rec_scores[i]);
-				}
-				displayWindow.scorecard.setText(getScoreStr());
-				continue;
-			}
+			// if (rec.getType() == MSGTYPE.ANSWER) {
+			// String recAnswer = rec.getPayload();
+			// // if I am a actor I need to update the score card
+			// if (state == CharadesConfig.ACTING) {
+			// System.out.println("received " + recAnswer);
+			// // if the answer is correct, this round of game ends
+			// if (recAnswer.equals(correct_answer)) {
+			// String strWinner = rec.getSrcName();
+			// winner = getIndexFromName(strWinner);
+			// scores[playerId]++;
+			// scores[winner]++;
+			// String str_scores = getScoreStr();
+			// displayWindow.scorecard.setText(str_scores);
+			// sender_client.multicast(playerId, "SCOREUPDATE " + compressScores(), userList);
+			//
+			// change2GUESSING();
+			// continue;
+			// }
+			// }
+			// String text = displayWindow.wanswers.getText() + recAnswer + "\n";
+			// displayWindow.wanswers.setText(text);
+			// }
 
-			if (rec.type.equals("ROUND_FINISHED")) {
-				// clear all textfield in swing window
-				displayWindow.wanswers.setText("");
-				displayWindow.changeActor((++actorId) % 3, dimension.height);
-				currentsec = round_time;
-				stop = true;
-				continue;
-			}
+			// if (rec.getType().equals("SCOREUPDATE")) {
+			// String[] recScores = rec.getPayload().split(" ");
+			// for (int i = 0; i < num_players; i++) {
+			// scores[i] = Integer.parseInt(recScores[i]);
+			// }
+			// displayWindow.scorecard.setText(getScoreStr());
+			// continue;
+			// }
+
+			// if (rec.getType().equals("ROUNDFINISHED")) {TODO
+			// // clear all textfield in swing window
+			// displayWindow.wanswers.setText("");
+			// displayWindow.changeActor((++actorId) % 3, dimension.height);
+			// currentsec = round_time;
+			// stop = true;
+			// continue;
+			// }
 
 			// pass the token to next player
-			if (rec.type.equals("TOKEN")) {
-				// user can choose whether they want to be an actor
-				int option = JOptionPane.showConfirmDialog(null, userList[playerId].hostname + " Do you want to be the actor?", "Confirm",
-						JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
-				if (option == 0) {
-					change2ACTING();
-				} else {
-					change2GUESSING();
-				}
-			}
+			// if (rec.getType() == MSGTYPE.TOKEN) {
+			// // user can choose whether they want to be an actor
+			// int option = JOptionPane.showConfirmDialog(null, userList[playerId].hostname + " Do you want to be the actor?", "Confirm",
+			// JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
+			// if (option == 0) {
+			// change2ACTING();
+			// } else {
+			// change2GUESSING();
+			// }
+			// }
 		}
 	}
 
 	private static void change2ACTING() {
 		state = CharadesConfig.ACTING;
 		displayWindow.submitbutton.setEnabled(false);
-		sender_client.multicastMsg(new OtpErlangAtom(MSGTYPE.BEGIN), userList, null);
-//		sender_client.multicast(playerId, "BEGIN ", userList);
+		sender_client.multicastMsg(new OtpErlangAtom(MSGTYPE.BEGIN.toString()), userList, null);
+		// sender_client.multicast(playerId, "BEGIN ", userList);
 		stop = false;
 	}
 
 	private static void change2GUESSING() {
 		state = CharadesConfig.GUESSING;
 		displayWindow.submitbutton.setEnabled(true);
-		sender_client.multicast(playerId, "ROUND_FINISHED " + " ", userList);//TODO
+		sender_client.multicast(playerId, "ROUND_FINISHED " + " ", userList);// TODO
 		displayWindow.changeActor((++actorId) % 3, dimension.height);
 		User next = userList[(playerId + 1) % num_players];
-		sender_client.unicastMsg(new OtpErlangAtom(MSGTYPE.TOKEN), next.otpString, next.ip, null);
-//		sender_client.sendMsg("TOKEN " + " ", userList[(playerId + 1) % num_players].hostname, userList[(playerId + 1) % num_players].ip);
+		sender_client.unicastMsg(new OtpErlangAtom(MSGTYPE.TOKEN.toString()), next.otpString, next.ip, null);
+		// sender_client.sendMsg("TOKEN " + " ", userList[(playerId + 1) % num_players].hostname, userList[(playerId + 1) % num_players].ip);
 		currentsec = round_time;
 		stop = true;
 

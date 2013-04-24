@@ -22,6 +22,7 @@ public class SenderServer implements Runnable {
 		OtpNode node = null;
 		
 		/* The code below gets the sender_server to run from Java. */
+		//TODO belows are hardcode...
 		String dir = "src/"; //where you have your beam file stored in relation to where this code is run
 		//String erlName = "$(which erl)"; //doesn't work correctly in this setup, but would be more portable
 		String erlName = "/usr/local/bin/erl"; //change this path to reflect where you have Erlang installed
@@ -47,10 +48,8 @@ public class SenderServer implements Runnable {
 			result = commandExecutor.executeCommand();
 			System.out.println("exe cmd " + cmd);
 		} catch (IOException e1) {
-			// TODO Auto-generated catch block
 			e1.printStackTrace();
 		} catch (InterruptedException e1) {
-			// TODO Auto-generated catch block
 			e1.printStackTrace();
 		}
 

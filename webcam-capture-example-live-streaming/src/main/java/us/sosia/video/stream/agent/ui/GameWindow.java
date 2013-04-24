@@ -16,11 +16,10 @@ import javax.swing.JTextField;
 import us.sosia.video.stream.agent.messaging.MSGTYPE;
 import us.sosia.video.stream.agent.messaging.MessageFactory;
 import us.sosia.video.stream.agent.messaging.Messager;
-import us.sosia.video.stream.agent.messaging.NameIpPort;
 import us.sosia.video.stream.common.CharadesConfig;
+import us.sosia.video.stream.common.User;
 
 import com.ericsson.otp.erlang.OtpErlangAtom;
-import com.ericsson.otp.erlang.OtpPeer;
 
 public class GameWindow {
 	/** UI stuff */
@@ -46,14 +45,14 @@ public class GameWindow {
 	public VideoPanel[]		videoPanelArray;
 
 	/** messaging stuff */
-	public NameIpPort[]		ipArray;
+	public User[]		ipArray;
 	public Integer			myHostId;
 	private Messager		sender_client;
 
 	// TODO
 	// private final OtpSelf selfNode;
 
-	public GameWindow(Dimension dimension, String testip, int hostId, final NameIpPort[] ipArr) throws IOException {
+	public GameWindow(Dimension dimension, String testip, int hostId, final User[] ipArr) throws IOException {
 		super();
 		/** messaging */
 		// selfNode = new OtpSelf("dmei", CharadesConfig.COOKIE);
@@ -117,11 +116,8 @@ public class GameWindow {
 				// TODO multicast
 				for (int i = 0; i < ipArray.length; i++) {
 					if (i != myHostId) {
-						sender_client.unicastMsg(new OtpErlangAtom(MSGTYPE.ANSWER), new OtpPeer(ipArray[i].otpString), ipArray[i].ip,
+						sender_client.unicastMsg(new OtpErlangAtom(MSGTYPE.ANSWER.toString()), ipArray[i].otpString, ipArray[i].ip,
 								answerfield.getText());
-						// messager.sendMsg(selfNode, new OtpErlangAtom(MSGTYPE.ANSWER), new OtpPeer(ipArray[myHostId].hostname + "@" + ipArray[myHostId].ip), messager.getMyIp(),
-						// ipArray[i].ip);
-						// messager.sendMsg("ANSWER " + ipArray[myHostId].hostname + " " + answerfield.getText(), ipArray[i].hostname, ipArray[i].ip);
 					}
 				}
 				wanswers.setText(wanswers.getText() + ipArray[myHostId].hostname + " " + answerfield.getText() + "\n");
