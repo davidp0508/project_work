@@ -1,4 +1,4 @@
-package us.sosia.video.stream.agent.messaging;
+package us.sosia.video.stream.common;
 
 public class User {
 	public String hostname;
@@ -11,5 +11,10 @@ public class User {
 		this.ip = ip;
 		this.port = port;
 		this.otpString = hostname + "@" + ip;
+	}
+	
+	@Override
+	public String toString() {
+		return otpString;
 	}
 }
