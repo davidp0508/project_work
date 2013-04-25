@@ -2,7 +2,6 @@ package messaging;
 
 import java.io.IOException;
 import java.util.ArrayList;
-
 import com.ericsson.otp.erlang.*;
 
 public class Listener implements Runnable {	
@@ -37,9 +36,9 @@ public class Listener implements Runnable {
         {
             OtpErlangObject message = null;
 			try {
-//				System.out.println("Waiting to receive...\n");
+
 				message = mbox.receive();
-				//System.out.println("Got message "+message+"\n");
+
 			} catch (OtpErlangExit e) {
 				e.printStackTrace();
 			} catch (OtpErlangDecodeException e) {
@@ -47,34 +46,55 @@ public class Listener implements Runnable {
 			}
 			System.out.format("Listener>>received %s%n", message);
 			
-            OtpErlangTuple messageTuple = (OtpErlangTuple) message;
-            
-            /* *****************New - Payload parsing */
-            OtpErlangObject payload = (OtpErlangObject) messageTuple.elementAt(0);
-            OtpErlangTuple payloadTuple = (OtpErlangTuple) payload;
-            
-            /* * modified */
-            String content = payloadTuple.elementAt(3).toString();
-            content = content.substring(1, content.length()-1);
-            
-            String type = payloadTuple.elementAt(2).toString();
-            type =	type.substring(1, type.length()-1);
-            /* * end modify */
-            
-            String srcAddr = messageTuple.elementAt(1).toString();
-            String srcIP = srcAddr.substring(srcAddr.indexOf("@")+1, srcAddr.length()-1); 
-            String srcName = srcAddr.substring(1, srcAddr.indexOf("@")) ;
-            
-            //TODO
-            //String type = content.substring(0, content.indexOf(' '));
-            //content = content.substring(content.indexOf(' ')+1);
-            
-            Message received = Message.getInstance(srcName, srcIP, type, content);
-            //System.out.println(received.name + received.ip + received.type + received.content);
-            synchronized(receivedMsgs){
-            	receivedMsgs.add(received);
-            	System.out.println("Listener>>"+receivedMsgs.size() + receivedMsgs.get(0).ip);           	
-            }
+			if (message instanceof OtpErlangTuple) {
+				// eg: received {{client,dmei,'ANSWER','wtf...!!'},'sender_server1@192.168.0.114'}
+				OtpErlangTuple messageTuple = (OtpErlangTuple) message;
+				System.out.println(messageTuple.arity());
+				String srcNode = null, type = null, payload = null;
+				srcNode = messageTuple.elementAt(1).toString().replaceAll("'", "");
+				if (messageTuple.elementAt(0) instanceof OtpErlangTuple) {
+					
+					OtpErlangTuple tmp = (OtpErlangTuple) messageTuple.elementAt(0);
+					type = tmp.elementAt(2).toString().replaceAll("'", "");
+					payload = tmp.elementAt(tmp.arity() - 1).toString().replaceAll("'", "");
+					System.out.println(srcNode + ">>> type: " + type + ", payload: " + payload);
+				}
+
+				Message received = new Message(srcNode, MSGTYPE.fromString(type), payload);
+				synchronized (receivedMsgs) {
+					receivedMsgs.add(received);
+					System.out.println("Listener>>" + receivedMsgs.size() + receivedMsgs.get(0));
+				}
+			} else {
+				// TODO message might be corrupted. request resend or whatever
+			}
+			
+//            OtpErlangTuple messageTuple = (OtpErlangTuple) message;
+//            
+//            /* *****************New - Payload parsing */
+//            OtpErlangObject payload = (OtpErlangObject) messageTuple.elementAt(0);
+//            OtpErlangTuple payloadTuple = (OtpErlangTuple) payload;
+//            
+//            String content = payloadTuple.elementAt(3).toString();
+//            if(content.startsWith("'")){
+//            	content = content.substring(1, content.length()-1);
+//            }
+//              
+//            String type = payloadTuple.elementAt(2).toString();
+//            type =	type.substring(1, type.length()-1);
+//
+//            
+//            String srcAddr = messageTuple.elementAt(1).toString();
+//            String srcIP = srcAddr.substring(srcAddr.indexOf("@")+1, srcAddr.length()-1); 
+//            String srcName = srcAddr.substring(1, srcAddr.indexOf("@")) ;
+//            
+//          
+//            Message received = Message.getInstance(srcName, srcIP, type, content);
+//            //System.out.println(received.name + received.ip + received.type + received.content);
+//            synchronized(receivedMsgs){
+//            	receivedMsgs.add(received);
+//            	System.out.println("Listener>>"+receivedMsgs.size() + receivedMsgs.get(0).ip);           	
+//            }
 
 
         }	

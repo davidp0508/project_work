@@ -1,21 +1,37 @@
 package messaging;
 
-public final class MSGTYPE {
-	public static final String TOKEN = "TOKEN";
-	public static final String BEGIN = "BEGIN";
-	public static final String ROUNDFINISHED = "ROUNDFINISHED";
-	public static final String ANSWER = "ANSWER";
-	public static final String SCOREUPDATE = "SCOREUPDATE";
-	//TODO more types
-	
-	// Game Hall Server
-	public static final String  SHOW_ROOMS = "SHOW_ROOMS";
-	public static final String  CREATE_NEWROOM = "CREATE_NEWROOM";
-	public static final String  JOIN_ROOM = "JOIN_ROOM";
-	public static final String  GET_CARD = "GET_CARD";
-	public static final String  LEAVE = "LEAVE";
-	
-	private MSGTYPE() {
-	
+import java.util.HashMap;
+import java.util.Map;
+import java.util.NoSuchElementException;
+
+public enum MSGTYPE {
+	TOKEN("TOKEN"), BEGIN("BEGIN"), ROUNDFINISHED("ROUNDFINISHED"), ANSWER("ANSWER"), SCOREUPDATE("SCOREUPDATE"), FAILED("FAILED"),
+	SHOW_ROOMS("SHOW_ROOMS"), CREATE_NEWROOM("CREATE_NEWROOM"), JOIN_ROOM("JOIN_ROOM"),  GET_CARD("GET_CARD"),
+	LEAVE("LEAVE");
+//	 TODO more types
+
+	private final String	name;
+	private static final Map<String, MSGTYPE> map = new HashMap<String, MSGTYPE>();
+	static {
+		for (MSGTYPE t : MSGTYPE.values())
+			map.put(t.name, t);
+	}
+
+	private MSGTYPE(String name) {
+		this.name = name;
+	}
+
+	public static MSGTYPE fromString(String name) {
+		if (map.containsKey(name))
+			return map.get(name);
+		throw new NoSuchElementException(name+" not found.");
+	}
+//	public boolean equalsType(String otherType) {
+//		return (otherType == null) ? false : type.equals(otherType);
+//	}
+
+	@Override
+	public String toString() {
+		return name;
 	}
 }

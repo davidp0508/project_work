@@ -124,7 +124,7 @@ public class GameHallServer {
 		 *   since this player is first client in room
 		 */
 		newRoom.setAvailableSlots("100000");
-		int clientNo = 1;
+		int clientNo = 0;
 		// create new room
 		int newRoomId = roomDao.createRoom(newRoom);
 
@@ -151,7 +151,7 @@ public class GameHallServer {
 			availableSlots = newSlots.toString();
 			roomDao.updateSlots(availableSlots, gameRoomId);
 		}
-		return newSlot+1;
+		return newSlot;
 	}
 
 
@@ -173,7 +173,7 @@ public class GameHallServer {
 			delRoom = roomDao.updateNoPlayers(currentPlayerCount, roomId);
 			availableSlots = roomDao.getSlots(roomId);
 			StringBuilder newSlots = new StringBuilder(availableSlots);
-			newSlots.setCharAt(clientNo-1, '0');
+			newSlots.setCharAt(clientNo, '0');
 			availableSlots = newSlots.toString();
 			updateRoom = roomDao.updateSlots(availableSlots, roomId);
 		}
