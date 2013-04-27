@@ -52,16 +52,16 @@ public class WordLibrary {
 
 		ArrayList<Integer> givenCardIds = givenCards.get(roomId);
 
-//		String tableName = "";
-//
-//		switch(choice){
-//		case 1: 		
-//			tableName = "Movies";
-//			break;
-//		case 2: 
-//			tableName = "Words";
-//			break;
-//		}
+		//		String tableName = "";
+		//
+		//		switch(choice){
+		//		case 1: 		
+		//			tableName = "Movies";
+		//			break;
+		//		case 2: 
+		//			tableName = "Words";
+		//			break;
+		//		}
 
 		if(givenCardIds == null){
 			givenCardIds = new ArrayList<Integer>();
@@ -76,6 +76,7 @@ public class WordLibrary {
 		givenCards.put(roomId,givenCardIds);
 		return card;
 	}
+
 
 	private Card fetchCard(int playerId, int roomId, String tableName) throws MyDAOException{
 
@@ -92,6 +93,18 @@ public class WordLibrary {
 		Random rand = new Random();
 		return (1 + rand.nextInt(range));
 	}
+
+	// for primary backup use only
+	public void updateHashList(int playerId, int roomId, int cardId){
+
+		ArrayList<Integer> givenCardIds = givenCards.get(roomId);
+		if(givenCardIds == null){
+			givenCardIds = new ArrayList<Integer>();
+		}
+		givenCardIds.add(cardId);
+		givenCards.put(roomId,givenCardIds);
+	}
+
 
 	/*
 	 * For populating db

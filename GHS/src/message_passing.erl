@@ -7,7 +7,7 @@
 %%To Do -- Receiver code, additional uni/multi capabilities, how to integrate Han's code.
 
 -module(message_passing).
--export([unicastSend/1, multicastSend/1, recvMsg/1, start/1, updateNodes/2, getSenderFullName/2]).%getMyIP/1]).
+-export([unicastSend/1, multicastSend/1, recvMsg/1, start/1, updateNodes/2, getSenderFullName/2]).
 
 
 unicastSend({Name, Node, Payload}) ->
@@ -61,7 +61,18 @@ recvMsg(CurNodeList) ->
 				 %Logic will need to be added to make the payload dynamic instead of hard-coded
 				 recvMsg(NodeList);
 			nodedown -> %one of the nodes we're monitoring went down
-				io:format("Node ~p has failed ~n", [FromName]); %we may want to interface upwards with our Java receiver here, or handle stuff at this level
+				io:format("Node ~p has failed, NodeList before = ~p ~n", [FromName, CurNodeList]),
+				RawTime = now(),
+				{Mega, Secs, _} = RawTime,
+				Time = (Mega * 1000000) + Secs,
+				io:format("Time in seconds is ~p~n", [Time]),
+				TmpName = atom_to_list(node()).
+				NameList = string:sub_word(TmpName, 1, $@),
+				Name = list_to_atom(NameList),
+				unicastSend({Name, node(), {FromName, node(), 'NODE_DOWN', Time}}),%tell OUR Java listener that some node failed (may need to be fixed when code is integrated)
+				NodeList = lists:delete(FromName, CurNodeList), %remove this node from the nodelist
+				erlang:monitor_node(FromName, false), %remove it from monitoring
+				io:format("NodeList after = ~p ~n", [NodeList]); 
 			_ -> io:format("Message does not match an expected format~n", []) %shouldn't happen unless the message is malformed
 		end
 	end,

@@ -9,11 +9,13 @@ public class Listener implements Runnable {
 	private String selfName;
 	private String ip;
 	private ArrayList<Message> receivedMsgs;
+	private ArrayList<Message>	receivedAcks;
 
-	public Listener(String selfName, String ip, ArrayList<Message> receivedMsgs){
+	public Listener(String selfName, String ip, ArrayList<Message> receivedMsgs, ArrayList<Message> receivedAcks){
 		this.selfName = selfName;
 		this.ip = ip;
 		this.receivedMsgs = receivedMsgs;
+		this.receivedAcks = receivedAcks;
 	}
 
 	@Override
@@ -34,6 +36,7 @@ public class Listener implements Runnable {
         
         while (true) 
         {
+        	System.out.format("Listener Loop ");
             OtpErlangObject message = null;
 			try {
 
@@ -61,9 +64,21 @@ public class Listener implements Runnable {
 				}
 
 				Message received = new Message(srcNode, MSGTYPE.fromString(type), payload);
-				synchronized (receivedMsgs) {
-					receivedMsgs.add(received);
-					System.out.println("Listener>>" + receivedMsgs.size() + receivedMsgs.get(0));
+				
+				System.out.println("In listener : Msg type is "+received.getType());
+				if(received.getType() == MSGTYPE.ACK)
+				{
+					synchronized (receivedAcks) {
+						receivedAcks.add(received);
+						System.out.println("Listener>>" + receivedAcks.size() + receivedAcks.get(0));
+					}	
+				}
+				else
+				{
+					synchronized (receivedMsgs) {
+						receivedMsgs.add(received);
+						System.out.println("Listener>>" + receivedMsgs.size() + receivedMsgs.get(0));
+					}
 				}
 			} else {
 				// TODO message might be corrupted. request resend or whatever

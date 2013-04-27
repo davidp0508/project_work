@@ -62,8 +62,16 @@ recvMsg(CurNodeList) ->
 				 recvMsg(NodeList);
 			nodedown -> %one of the nodes we're monitoring went down
 				io:format("Node ~p has failed, NodeList before = ~p ~n", [FromName, CurNodeList]),
-				unicastSend({listener, FromName, {node(), listener, nodedown, 1}}),%tell OUR Java listener that some node failed (may need to be fixed when code is integrated)
+				RawTime = now(),
+				{Mega, Secs, _} = RawTime,
+				Time = (Mega * 1000000) + Secs,
+				io:format("Time in seconds is ~p~n", [Time]),
+				TmpName = atom_to_list(node()).
+				NameList = string:sub_word(TmpName, 1, $@),
+				Name = list_to_atom(NameList),
+				unicastSend({Name, node(), {FromName, node(), 'NODE_DOWN', Time}}),%tell OUR Java listener that some node failed (may need to be fixed when code is integrated)
 				NodeList = lists:delete(FromName, CurNodeList), %remove this node from the nodelist
+				erlang:monitor_node(FromName, false), %remove it from monitoring
 				io:format("NodeList after = ~p ~n", [NodeList]); 
 			_ -> io:format("Message does not match an expected format~n", []) %shouldn't happen unless the message is malformed
 		end
