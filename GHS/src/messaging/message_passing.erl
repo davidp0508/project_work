@@ -49,34 +49,50 @@ recvMsg(CurNodeList) ->
 		case Payload of %here we can add a bunch of cases for tokens, etc...
 			{Sender, _, ack, _} -> io:format("Got an ack; done sending.~n", []),
 				   SenderFN = getSenderFullName(FromName, Sender), %need this, but it fails now b/c Sender is a PID and not a name...must fix!
+				   io:format("CurNodeList: ~p and SenderFN: ~p~n", [CurNodeList, SenderFN]),
 				   NodeList = updateNodes(CurNodeList, SenderFN),
 				   io:format("NodeList after call is ~p~n", [NodeList]),
 				   recvMsg(NodeList);
 			{Sender, Me, _, _} ->
 				 SenderFN = getSenderFullName(FromName, Sender),
 				 unicastSend({Sender, SenderFN, {Me, Sender, ack, 1}}),
-				 unicastSend({sender_server, FromName, {Me, sender_server, ack, 1}}), %need this line (right now) to make it respond and stop waiting 
+				 unicastSend({sender_server, FromName, {Me, sender_server, ack, 1}}), %need this line (right now) to make it respond and stop waiting
+				 io:format("CurNodeList: ~p and SenderFN: ~p~n", [CurNodeList, SenderFN]), 
 				 NodeList = updateNodes(CurNodeList, SenderFN),
 				 io:format("NodeList after call is ~p~n", [NodeList]),
 				 %Logic will need to be added to make the payload dynamic instead of hard-coded
 				 recvMsg(NodeList);
 			nodedown -> %one of the nodes we're monitoring went down
 				io:format("Node ~p has failed, NodeList before = ~p ~n", [FromName, CurNodeList]),
-				RawTime = now(),
-				{Mega, Secs, _} = RawTime,
-				Time = (Mega * 1000000) + Secs,
-				io:format("Time in seconds is ~p~n", [Time]),
-				TmpName = atom_to_list(node()).
-				NameList = string:sub_word(TmpName, 1, $@),
-				Name = list_to_atom(NameList),
-				unicastSend({Name, node(), {FromName, node(), 'NODE_DOWN', Time}}),%tell OUR Java listener that some node failed (may need to be fixed when code is integrated)
+				Name = getName(),
+				Listener = getPartialName(Name),
+				unicastSend({Name, node(), {FromName, Listener, 'NODE_DOWN', FromName}}),%tell OUR Java listener that some node failed
 				NodeList = lists:delete(FromName, CurNodeList), %remove this node from the nodelist
-				erlang:monitor_node(FromName, false), %remove it from monitoring
-				io:format("NodeList after = ~p ~n", [NodeList]); 
+				erlang:monitor_node(FromName, false); %remove it from monitoring io:format("NodeList after = ~p ~n", [NodeList]); 
 			_ -> io:format("Message does not match an expected format~n", []) %shouldn't happen unless the message is malformed
 		end
 	end,
 	otherthing.
+
+
+getPartialName(Name) ->
+	%Gets the appropriate node name
+	%(like david@IP instead of sender_serverdavid@IP).
+	
+	TmpName = atom_to_list(Name),
+	Loc = string:str(TmpName, "ender_server"), %no 's' b/c it might also return 0 and mess us up
+	case Loc of
+		0 -> Name;
+		_ -> list_to_atom(string:sub_string(TmpName, 14))
+	end.
+
+
+getName() ->
+	%Gets the name from a 'name@IP' atom.
+	
+	TmpName = atom_to_list(node()),
+	NameList = string:sub_word(TmpName, 1, $@),
+	list_to_atom(NameList).
 
 
 updateNodes(CurNodeList, Candidate) ->
@@ -93,7 +109,13 @@ updateNodes(CurNodeList, Candidate) ->
 	        false ->
 	            io:format("Could not find ~p in list ~p~n", [Candidate, CurNodeList]),
 				erlang:monitor_node(Candidate, true),
-				lists:append(CurNodeList, [Candidate]);
+				NodeList = lists:append(CurNodeList, [Candidate]),
+				TmpName = getName(),
+				FullString = atom_to_list(Candidate),
+				IPloc = string:rchr(FullString, $@),
+				IP = string:sub_string(FullString, IPloc),
+				SS = list_to_atom(atom_to_list('sender_server') ++ atom_to_list(TmpName) ++ IP),
+				lists:append(NodeList, [SS]);
 	        true ->
 				io:format("Found ~p in list ~p~n", [Candidate, CurNodeList]),
 				NodeList = CurNodeList
@@ -115,12 +137,3 @@ start([Name]) ->
 		false -> %no -> 
 			io:format("Unable to add ~p~n", [Name])
 	end.
-
-
-%getMyIP(Interfaces) ->
-%	io:format("INterface list: ~p~n", [Interfaces]),
-%	case Interfaces of
-%		{ok,[List]} -> io:format("List of interfaces are ~p~n", List);
-%		_ -> io:format("Could not find any interfaces~n", []),
-%			IP = ""
-%	end.  

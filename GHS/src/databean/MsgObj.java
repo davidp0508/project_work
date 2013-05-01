@@ -11,6 +11,8 @@ public class MsgObj {
 	int roomId;
 	
 	ArrayList<Player> allPlayers;
+	
+	String memo;
 
 	public int getPlayerId() {
 		return playerId;
@@ -43,6 +45,13 @@ public class MsgObj {
 	public void setClientNo(int clientNo) {
 		this.clientNo = clientNo;
 	}
-	
+
+	public String getMemo() {
+		return memo;
+	}
+
+	public void setMemo(String memo) {
+		this.memo = memo;
+	}
 	
 }

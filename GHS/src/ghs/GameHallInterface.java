@@ -4,6 +4,7 @@ import messaging.*;
 
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.HashMap;
 
 import com.ericsson.otp.erlang.OtpErlangAtom;
 import dao.MyDAOException;
@@ -18,16 +19,18 @@ public class GameHallInterface {
 	private final static int				MAX_RETRIES 	= 3;
 	private final static ArrayList<Integer> seqBuff			= new ArrayList<Integer>(); //keeps track of seen seqNos on Backup and
 	private static long 					seqCtr			= 0; //counter for seqNo generation on Primary
-	private final static String				myIp 			= ip.getIPaddress();
-	private final static String				myName			= "game_hall"; // "backup" for bkup
+	final static String						myIp 			= ip.getIPaddress();
+	final static String						myName			= "game_hall"; // "backup" for bkup
 	private final static ArrayList<Message>	receivedMsgs	= new ArrayList<Message>();
 	private final static ArrayList<Message>	receivedAcks	= new ArrayList<Message>();
-	private static Messager					sender_client;
+	static Messager							sender_client;
 
-	private final static String				replicaIp 		= "128.237.245.215";
-	private final static String				replicaName		= "backup"; // "game_hall" for bkup
-	private static boolean 					isPrimary 		= true; // 'false' for bkup
+	final static String				replicaIp 		= "128.237.241.158";
+	final static String				replicaName		= "backup"; // "game_hall" for bkup
+	static boolean 							isPrimary 		= true; // 'false' for bkup
 
+	private static HashMap<Integer , User>  actorMap 		= new HashMap<Integer , User>();
+	
 	private static GameHallServer gh = new GameHallServer();
 	private static WordLibrary wl = new WordLibrary();
 
@@ -38,7 +41,7 @@ public class GameHallInterface {
 		wl.initWordLib();
 
 		// build a messager to send msgs to other
-		sender_client = MessageFactory.getMessager("client", "sender_server"+"GHS"+"@" + myIp, "test");
+		sender_client = MessageFactory.getMessager("client", "sender_server"+myName+"@" + myIp, "test");
 		System.out.println("StreamClient>>>"+sender_client);
 
 		// listener thread start
@@ -46,6 +49,14 @@ public class GameHallInterface {
 		Thread threadServer = new Thread(myServer);
 		threadServer.start();
 
+		// Heart beat
+		// start heart beat thread
+		addReplicaHeartBeat();
+		HeartBeat.startHeartBeatTimerIncoming();
+		HeartBeat.sendOutgoingHeartbeat();
+		HeartBeat.startHeartBeatTimerOutgoing();
+			
+	
 		// loop to receive
 		while(true){
 
@@ -99,7 +110,7 @@ public class GameHallInterface {
 				String seqno = null;
 				if(incomingArgs.length > 4)
 					seqno = incomingArgs[4];
-				
+
 				if(!isPrimary){
 					if(!seqBuff.contains(seqno)) //doesn't contain
 					{
@@ -137,7 +148,7 @@ public class GameHallInterface {
 				String ip = incomingArgs[2];
 				String port = incomingArgs[3];
 				String seqno = null;
-				
+
 				if(incomingArgs.length > 4)
 					seqno = incomingArgs[4];
 
@@ -149,27 +160,35 @@ public class GameHallInterface {
 						MsgObj newObj = gh.joinRoom(Integer.parseInt(roomId), playerName, ip, port);
 					}
 					sendACKtoPrim(seqno);
-					
-					
+
+
 				}
 				else //if(isPrimary){
 				{
 					//database transaction				
 					MsgObj newObj = gh.joinRoom(Integer.parseInt(roomId), playerName, ip, port);
-					
+
 					propagate_state(rec.getType().toString(), rec.getContent(), seqCtr);
 
 					/*respond to client */
 					if(newObj != null){
+						if(newObj.getMemo() != null){
+							if(newObj.getMemo().equals("Name_Duplicate")){
+								sender_client.unicastMsg(new OtpErlangAtom(MSGTYPE.JOIN_ROOM.toString()), 
+										playerName+"@"+rec.getSrcIp(), rec.getSrcIp(),newObj.getMemo() );
+							}
+						}else{
 
-						//return player Id and info of all players in room
-						String responseContent = new String(newObj.getPlayerId()+" "+newObj.getClientNo()+" ");
+							//return player Id and info of all players in room
+							String responseContent = new String(newObj.getPlayerId()+" "+newObj.getClientNo()+" ");
 
-						for(Player p: newObj.getAllPlayers()){
-							responseContent += p.getPlayerName()+","+p.getIp()+","+p.getPort()+","+p.getClientNo()+" ";
+							for(Player p: newObj.getAllPlayers()){
+								responseContent += p.getPlayerId()+","+p.getPlayerName()+","+p.getIp()+","+p.getPort()+","+p.getClientNo()+" ";
+							}
+							sender_client.unicastMsg(new OtpErlangAtom(MSGTYPE.JOIN_ROOM.toString()), 
+									playerName+"@"+rec.getSrcIp(), rec.getSrcIp(), responseContent);
 						}
-						sender_client.unicastMsg(new OtpErlangAtom(MSGTYPE.JOIN_ROOM.toString()), 
-								playerName+"@"+rec.getSrcIp(), rec.getSrcIp(), responseContent);
+
 					}else{
 						String responseContent = new String("No_Room");
 						sender_client.unicastMsg(new OtpErlangAtom(MSGTYPE.JOIN_ROOM.toString()), 
@@ -180,25 +199,29 @@ public class GameHallInterface {
 			}
 
 			if(rec.getType() == MSGTYPE.GET_CARD){
-				
+
 				if(isPrimary){
-					
+
 					// Parse content field of message to retrieve (playerId, roomId, genre)
 					String[] incomingArgs = rec.getContent().split(" ");
 					int playerId = Integer.parseInt(incomingArgs[0]);
 					int roomId = Integer.parseInt(incomingArgs[1]);
 					String genre = incomingArgs[2];
 					String playerName = incomingArgs[3];
-					
+
+					// update FullIpArray ->> HEARBEAT
+					User newActor = new User(playerName, rec.getSrcIp());
+					updateActors(roomId, newActor);
+
 					//db transaction
 					Card card = wl.getCard(playerId, roomId, genre);
 
 					//return words belonging to the 3 difficulty levels
-					String responseContent = new String(card.getEasy()+" "+card.getMedium()+" "+card.getHard());
+					String responseContent = new String(card.getEasy()+";"+card.getMedium()+";"+card.getHard());
 
 					sender_client.unicastMsg(new OtpErlangAtom(MSGTYPE.GET_CARD.toString()), 
 							playerName+"@"+rec.getSrcIp(), rec.getSrcIp(), responseContent);
-					
+
 					/* TO DO
 					 * Propagate state of givenCards hashlist to prim backup
 					 * 		send playerId, roomId, card ID
@@ -206,14 +229,14 @@ public class GameHallInterface {
 					propagate_state(rec.getType().toString(), playerId+" "+roomId+" "+card.getCardId(), seqCtr);
 
 				}else{
-					
+
 					// if prim backup 
 					String[] incomingArgs = rec.getContent().split(" ");
 					int playerId = Integer.parseInt(incomingArgs[0]);
 					int roomId = Integer.parseInt(incomingArgs[1]);
 					int cardId = Integer.parseInt(incomingArgs[2]);
 					String seqno = null;
-					
+
 					if(incomingArgs.length > 3)
 						seqno = incomingArgs[3];
 					if(!seqBuff.contains(seqno)) //doesn't contain
@@ -226,7 +249,7 @@ public class GameHallInterface {
 			}
 
 			if(rec.getType() == MSGTYPE.LEAVE ){
-			
+
 				String[] incomingArgs = rec.getContent().split(" ");
 				int playerId = Integer.parseInt(incomingArgs[0]);
 				int  clientNo = Integer.parseInt(incomingArgs[1]);
@@ -238,30 +261,29 @@ public class GameHallInterface {
 					seqno = incomingArgs[3];
 
 				if(!isPrimary){
+
 					if(!seqBuff.contains(seqno)) //doesn't contain
 					{
 						seqBuff.add(Integer.parseInt(seqno));
 						//database transaction				
 						gh.leaveRoom(playerId, roomId, clientNo);
 					}
-					sendACKtoPrim(seqno);		
-				}else{
-					gh.leaveRoom(playerId, roomId, clientNo);
-					propagate_state(rec.getType().toString(), rec.getContent(), seqCtr);;
-				}
-				
-				
+					sendACKtoPrim(seqno);
 
-//				String responseContent = "";
-//				if(res){
-//					responseContent = new String("Success");
-//				}else{
-//					responseContent = new String("Leave failed");
-//				}
-//				sender_client.unicastMsg(new OtpErlangAtom(MSGTYPE.LEAVE.toString()), 
-//						playerName+"@"+rec.getSrcIp(), rec.getSrcIp(), responseContent);	
+				}else{
+
+					boolean res = gh.leaveRoom(playerId, roomId, clientNo);
+					if(res){
+						propagate_state(rec.getType().toString(), rec.getContent(), seqCtr);
+					}			
+				}
+	
 			}
 
+			if(rec.getType() == MSGTYPE.HEARTBEAT){
+				String sender = rec.getContent();
+				HeartBeat.receivedBeats.put(sender, 1);
+			}
 
 			if(rec.getType() == MSGTYPE.IS_PRIMARY){
 
@@ -274,32 +296,37 @@ public class GameHallInterface {
 						playerName+"@"+rec.getSrcIp(), rec.getSrcIp(), responseContent);	
 			}
 
-			if(rec.getType() == MSGTYPE.NODE_DOWN){
-				if(!isPrimary)//the backup
-					isPrimary = true;
-			}
 		}
 	}
 
 	private static boolean propagate_state(String type, String content, long seqno){
 
-		
+
 		// TO DO		
 		sender_client.unicastMsg(new OtpErlangAtom(type), 
 				replicaName+"@"+replicaIp, replicaIp, content+" "+seqno); //forward to backup
-		
+
+		System.out.println("In Propagate state - Just entered ");
 		int retries = 0;
 		long timeout = 1000;
 		Calendar time = Calendar.getInstance(); 
-		long startTime = time.getTimeInMillis();
+		long startTime = System.currentTimeMillis();
+
+
 		//wait for the corresponding ACK
 		while(true){
-			long curTime = time.getTimeInMillis();
+			long curTime = System.currentTimeMillis();
+
+			//			System.out.println("StartTime :"+startTime );
+			//			System.out.println(" CurrentTime :"+curTime );
+
 			if(retries < MAX_RETRIES)
 			{
 				if(startTime+timeout <= curTime)
 				{	
 					//we timed out :(
+					System.out.println(" ##### In Propagate state - Resend No: "+retries);
+
 					sender_client.unicastMsg(new OtpErlangAtom(type), 
 							replicaName+"@"+replicaIp, replicaIp, content+" "+seqno); //forward to backup
 					retries++;
@@ -322,28 +349,50 @@ public class GameHallInterface {
 				}
 				//else we go into the code below
 			}
-			
-			
+
+
 			synchronized(receivedAcks) {
-				if(receivedAcks.size() ==0)
+				if(receivedAcks.size() ==0){
+					//System.out.println("In Propagate state - before continue");
 					continue;
+				}	
 			}
 			for(Message rec : receivedAcks)
 			{
 				String newSeqno = rec.getContent();
 				if(Long.parseLong(newSeqno.trim()) == seqno)
 				{
+					System.out.println("In Propagate state - ACK matched");
+
 					receivedAcks.remove(rec); //this may fail due to iterator issues
 					return true;
 				}
 			}
+
+			System.out.println("In Propagate state - Returning false");
 			return false;
 		}
-		
+
 		// else resend & timeout 
 
 	}
 
+	private static void updateActors(int roomId, User newActor){
+
+		if(actorMap.containsKey(roomId)){
+
+			User removeThisUser = actorMap.get(roomId);
+			HeartBeat.fullIpList.remove(removeThisUser);
+		}
+		actorMap.put(roomId, newActor);
+	}
+
+
+	private static void addReplicaHeartBeat(){
+		User replica = new User(replicaName, replicaIp);
+		HeartBeat.fullIpList.add(replica);		
+	}
+	
 	private static void sendACKtoPrim(String seqno){
 		// respond to primary with ACK
 		String responseContent = seqno;

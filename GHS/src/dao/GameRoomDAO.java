@@ -130,6 +130,34 @@ public class GameRoomDAO {
 		}
 	}
 
+	public int deleteRoom(int roomId) throws MyDAOException{
+
+		Connection con = null;
+		try{
+			con = getConnection();
+			con.setAutoCommit(false);
+
+			PreparedStatement pstmt = con.prepareStatement("DELETE FROM "+ tableName +
+					" WHERE roomId = ?");
+			pstmt.setInt(1, roomId);
+
+			int res = pstmt.executeUpdate();
+			con.commit();
+			con.setAutoCommit(true);
+			pstmt.close();
+			releaseConnection(con);
+
+			return res;
+		}catch(Exception e){
+			try { 
+				if (con != null) 
+					con.close(); 
+			} 
+			catch (SQLException e2) { /* ignore */ }
+			throw new MyDAOException(e);
+		}		
+	}
+	
 	public ArrayList<GameRoom> showAllRooms() throws MyDAOException{
 
 		Connection con = null;

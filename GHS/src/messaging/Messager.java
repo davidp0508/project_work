@@ -67,9 +67,9 @@ public class Messager {
 		 * The receiver_server receives all messages from other nodes and allows for Java-level processing.
 		 */
 		// TODO command line not work
-		SenderServer mySender = new SenderServer(serverName);
-		Thread threadSendServer = new Thread(mySender);
-		threadSendServer.start();
+//		SenderServer mySender = new SenderServer(serverName);
+//		Thread threadSendServer = new Thread(mySender);
+//		threadSendServer.start();
 
 //		try {
 //			Thread.sleep(2000);
@@ -120,6 +120,64 @@ public class Messager {
 
 		try {
 			connection.sendRPC("message_passing", "unicastSend", formatArgs(tuple));
+		} catch (IOException e1) {
+			e1.printStackTrace();
+		}
+		try {
+			// This only captures the success of sending the RPC, not of the response /
+			response = connection.receiveRPC(); // connection.receiveMsg().getMsg();
+		} catch (OtpErlangExit e) {
+			e.printStackTrace();
+		} catch (OtpAuthException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		// can do some error checking here to make sure it sent successfully
+		System.out.println("Status of sendRPC call: " + response.toString() + "\n");
+
+	}
+
+	public void multicastMsg(OtpErlangAtom type, User[] dsts, String content) {
+		if (content == null)
+			content = "";
+		if(dsts.length == 0)
+			return;
+		// public void multicastMsg(OtpErlangAtom type, String[] dstOtp, String[] dstIP, String content) {
+		OtpErlangObject[] payload = new OtpErlangObject[4]; // contains src, dst, type, seq #
+		payload[0] = new OtpErlangAtom(client.alive()); // we only want the username
+		// payload[1] = new OtpErlangAtom(dst.alive()); // this will later most likely be passed in as an argument of type OtpPeer
+		payload[1] = new OtpErlangAtom(new Integer(dsts.length).toString());
+		payload[2] = type;
+		payload[3] = new OtpErlangAtom(content); // this will need to be defined like in our labs
+
+		// String[][] userList = new String[3][2]; // contains the raw list of users (get this from node logic later)
+		OtpErlangObject[] user = new OtpErlangObject[2]; // contains the pieces of a user (username, IP)
+		OtpErlangObject[] user_list = new OtpErlangTuple[dsts.length]; // user list as an Erlang object
+		OtpErlangTuple temp = null;
+		// Erlang's list of tuples looks like this: [{david, '192.168.1.44'}, {joe, '192.168.1.44'}, {local_server, '192.168.1.44'}]
+
+		for (int i = 0; i < dsts.length; i++) {
+				System.out.println("multicast: " + dsts[i].hostname);
+				user[0] = new OtpErlangAtom(dsts[i].hostname);
+				user[1] = new OtpErlangAtom(dsts[i].ip);
+				temp = new OtpErlangTuple(user);
+				user_list[i] = temp;				
+		}
+
+		OtpErlangObject[] mcMsg = new OtpErlangObject[4];
+		// TODO in reality the first two fields must be some node in the user list (instead of hard-coded in)
+		OtpPeer dst = new OtpPeer(dsts[0].otpString);
+		mcMsg[0] = new OtpErlangAtom(dst.alive());
+		mcMsg[1] = new OtpErlangAtom(dst.toString());
+		mcMsg[2] = new OtpErlangTuple(payload);
+		mcMsg[3] = new OtpErlangList(user_list);
+		System.out.println(mcMsg);
+		OtpErlangTuple mcTuple = new OtpErlangTuple(mcMsg);
+		OtpErlangObject response = null;
+
+		try {
+			connection.sendRPC("message_passing", "multicastSend", formatArgs(mcTuple));
 		} catch (IOException e1) {
 			e1.printStackTrace();
 		}

@@ -3,15 +3,15 @@ package databean;
 public class Player {
 
 	int playerId;
-	
+
 	String playerName;
-	
+
 	String ip;
-	
+
 	String port;
-	
+
 	int gameRoomId;
-	
+
 	int clientNo;
 
 	public int getPlayerId() {
@@ -61,8 +61,18 @@ public class Player {
 	public void setClientNo(int clientNo) {
 		this.clientNo = clientNo;
 	}
+
+	public boolean equals(Object o){
+		if(o instanceof Player){
+			Player toCompare = (Player) o;
+			return this.playerName.equals(toCompare.playerName);
+		}
+		return false;
+	}
 	
-	
-	
-	
+	@Override
+	public int hashCode() {
+		// TODO Auto-generated method stub
+		return playerName.hashCode();
+	}
 }

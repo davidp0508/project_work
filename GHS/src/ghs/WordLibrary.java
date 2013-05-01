@@ -84,7 +84,7 @@ public class WordLibrary {
 		ArrayList<Integer> cardIndices = new ArrayList<Integer>();
 		cardIndices = (ArrayList<Integer>) genreDao.read(tableName);
 		int randomIndex = getrnd(cardIndices.size());
-		card = cardDao.read(cardIndices.get(randomIndex));
+		card = cardDao.read(cardIndices.get(randomIndex - 1));
 		return card;
 	}
 

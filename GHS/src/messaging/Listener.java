@@ -36,7 +36,6 @@ public class Listener implements Runnable {
         
         while (true) 
         {
-        	System.out.format("Listener Loop ");
             OtpErlangObject message = null;
 			try {
 
@@ -60,7 +59,7 @@ public class Listener implements Runnable {
 					OtpErlangTuple tmp = (OtpErlangTuple) messageTuple.elementAt(0);
 					type = tmp.elementAt(2).toString().replaceAll("'", "");
 					payload = tmp.elementAt(tmp.arity() - 1).toString().replaceAll("'", "");
-					System.out.println(srcNode + ">>> type: " + type + ", payload: " + payload);
+//					System.out.println(srcNode + ">>> type: " + type + ", payload: " + payload);
 				}
 
 				Message received = new Message(srcNode, MSGTYPE.fromString(type), payload);

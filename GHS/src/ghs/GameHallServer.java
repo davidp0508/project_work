@@ -62,7 +62,20 @@ public class GameHallServer {
 	public MsgObj joinRoom( int gameRoomId, String playerName, String ip, String port)
 			throws MyDAOException{
 
-
+		// check if the name already exists in database
+		ArrayList<Player> playersInRoom = new ArrayList<Player>();
+		playersInRoom = playerDao.showPlayers(gameRoomId);
+		Player temp = new Player();
+		temp.setPlayerName(playerName);
+		if(playersInRoom != null){
+			if(playersInRoom.contains(temp)){
+				MsgObj returnMsg = new MsgObj();
+				returnMsg.setMemo("Name_Duplicate");
+				return returnMsg;
+			}
+		}
+			
+		// check for available slot
 		int clientNo = retrieveClientNo(gameRoomId);
 
 		if(clientNo != -1){
@@ -76,7 +89,7 @@ public class GameHallServer {
 			roomDao.updateNoPlayers(currentPlayers, gameRoomId);	
 
 			// return list of players
-			ArrayList<Player> playersInRoom = new ArrayList<Player>();
+			playersInRoom = new ArrayList<Player>();
 			playersInRoom = playerDao.showPlayers(gameRoomId);
 
 
@@ -168,14 +181,20 @@ public class GameHallServer {
 
 		delPlayer = playerDao.deletePlayer(playerId);
 		if(delPlayer == 1){
+			//update player count
 			currentPlayerCount = roomDao.getNoPlayers(roomId);
 			currentPlayerCount--;
 			delRoom = roomDao.updateNoPlayers(currentPlayerCount, roomId);
+			//update available slots
 			availableSlots = roomDao.getSlots(roomId);
 			StringBuilder newSlots = new StringBuilder(availableSlots);
 			newSlots.setCharAt(clientNo, '0');
 			availableSlots = newSlots.toString();
 			updateRoom = roomDao.updateSlots(availableSlots, roomId);
+			//delete room if all players have left
+			if(currentPlayerCount == 0){
+				roomDao.deleteRoom(roomId);
+			}
 		}
 
 		if( delPlayer==1 && delRoom ==1 && updateRoom ==1)
